@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101114">
+  <title>Project 67 Arcade</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101114;
+      --ink: #f8fbff;
+      --muted: #aeb8c6;
+      --soft: #dde4ea;
+      --panel: rgba(20, 23, 28, 0.88);
+      --panel-strong: rgba(30, 35, 42, 0.96);
+      --line: rgba(255, 255, 255, 0.15);
+      --yellow: #ffd166;
+      --green: #7af0a6;
+      --cyan: #64d2ff;
+      --pink: #ff78a5;
+      --red: #ff6470;
+      --purple: #a78bfa;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 12% 10%, rgba(100, 210, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 88% 7%, rgba(255, 209, 102, 0.15), transparent 23%),
+        radial-gradient(circle at 47% 100%, rgba(122, 240, 166, 0.12), transparent 30%),
+        linear-gradient(180deg, #15171d 0%, var(--bg) 62%, #0b0d11 100%);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      padding: clamp(14px, 3vw, 32px);
+    }
+
+    a,
+    button {
+      font: inherit;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero {
+      min-height: 218px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: clamp(18px, 4vw, 32px);
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent 42%),
+        linear-gradient(100deg, rgba(255, 120, 165, 0.13), transparent 33%),
+        var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .kicker {
+      margin: 0 0 10px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      max-width: 760px;
+      font-size: clamp(42px, 8vw, 82px);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .hero p:not(.kicker) {
+      max-width: 680px;
+      margin-top: 14px;
+      color: var(--soft);
+      font-size: clamp(15px, 2vw, 18px);
+      line-height: 1.45;
+    }
+
+    .hero-badge {
+      width: 142px;
+      height: 142px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(255, 209, 102, 0.96), rgba(122, 240, 166, 0.88)),
+        #ffd166;
+      color: #101114;
+      box-shadow: inset 0 -10px rgba(0, 0, 0, 0.12), 0 18px 40px rgba(0, 0, 0, 0.28);
+      font-size: 58px;
+      font-weight: 900;
+      transform: rotate(2deg);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 4px;
+    }
+
+    .section-head h2 {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .section-head p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      text-align: right;
+    }
+
+    .install-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background:
+        linear-gradient(100deg, rgba(122, 240, 166, 0.12), transparent 38%),
+        var(--panel);
+      box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .install-panel h2 {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .install-panel p {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .download {
+      min-height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      padding: 0 16px;
+      background: linear-gradient(135deg, var(--green), var(--yellow));
+      color: #07110b;
+      font-weight: 900;
+      text-align: center;
+      box-shadow: inset 0 -5px rgba(0, 0, 0, 0.13);
+      white-space: nowrap;
+    }
+
+    .recent-strip {
+      min-height: 104px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .recent-empty,
+    .recent-item,
+    .game-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: inset 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .recent-empty {
+      grid-column: 1 / -1;
+      display: grid;
+      place-items: center;
+      min-height: 104px;
+      padding: 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .recent-item {
+      min-height: 104px;
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .recent-item:hover,
+    .game-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 209, 102, 0.62);
+      background: var(--panel-strong);
+    }
+
+    .recent-icon,
+    .card-icon {
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #081014;
+      font-weight: 900;
+    }
+
+    .recent-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--accent);
+      box-shadow: inset 0 -6px rgba(0, 0, 0, 0.13);
+      font-size: 27px;
+    }
+
+    .recent-title {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: 900;
+    }
+
+    .recent-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .mini-play {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.09);
+      color: var(--yellow);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .game-card {
+      min-height: 342px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto auto;
+      gap: 14px;
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .game-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 5px;
+      background: var(--accent);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card-icon {
+      width: 62px;
+      height: 62px;
+      background: var(--accent);
+      font-size: 31px;
+      box-shadow: inset 0 -7px rgba(0, 0, 0, 0.13);
+    }
+
+    .type {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.11em;
+      text-align: right;
+      text-transform: uppercase;
+    }
+
+    .game-card h3 {
+      font-size: 25px;
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .game-card p {
+      color: var(--soft);
+      font-size: 14px;
+      line-height: 1.42;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .tag {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--soft);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .play {
+      min-height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #081014;
+      font-weight: 900;
+      padding: 0 12px;
+      text-align: center;
+      box-shadow: inset 0 -5px rgba(0, 0, 0, 0.14);
+    }
+
+    .file-link {
+      min-height: 46px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      max-width: 168px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .play:focus-visible,
+    .file-link:focus-visible,
+    .recent-item:focus-visible,
+    button:focus-visible {
+      outline: 3px solid var(--yellow);
+      outline-offset: 3px;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 2px 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .reset {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-weight: 800;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    @media (max-width: 920px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-badge {
+        width: 92px;
+        height: 92px;
+        font-size: 40px;
+      }
+
+      .grid,
+      .recent-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      body {
+        padding: 10px;
+      }
+
+      .hero {
+        min-height: 0;
+        padding: 20px;
+      }
+
+      .section-head {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .install-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .download {
+        white-space: normal;
+      }
+
+      .section-head p {
+        text-align: left;
+      }
+
+      .grid,
+      .recent-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .game-card {
+        min-height: 0;
+      }
+
+      .footer {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero" aria-labelledby="launcherTitle">
+      <div>
+        <p class="kicker">Project 67 Arcade</p>
+        <h1 id="launcherTitle">Fresh games and tools, ready to launch.</h1>
+        <p>Pick a card, jump in, and the launcher will remember what you played most recently on this device.</p>
+      </div>
+      <div class="hero-badge" aria-hidden="true">▶</div>
+    </section>
+
+    <section class="install-panel" aria-labelledby="installTitle">
+      <div>
+        <h2 id="installTitle">Download The Browser Arcade</h2>
+        <p>Share one zip file containing copied game files. They unzip it, open <b>index.html</b>, and the games launch from the cards.</p>
+      </div>
+      <a class="download" href="project67-browser-arcade-mobile-install.zip" download>Download Installer Zip</a>
+    </section>
+
+    <section aria-labelledby="recentTitle">
+      <div class="section-head">
+        <h2 id="recentTitle">Recently Played</h2>
+        <p>Saved locally in this browser.</p>
+      </div>
+      <div class="recent-strip" id="recentList"></div>
+    </section>
+
+    <section aria-labelledby="libraryTitle">
+      <div class="section-head">
+        <h2 id="libraryTitle">Launcher</h2>
+        <p>Mobile and keyboard tags are based on each page's controls.</p>
+      </div>
+      <div class="grid" id="gameGrid"></div>
+    </section>
+
+    <footer class="footer">
+      <span>Forty-seven games and tools collected into one arcade shelf.</span>
+      <button class="reset" id="clearRecent" type="button">Clear recently played</button>
+    </footer>
+  </main>
+
+  <script>
+    const storageKey = "project67-recently-played";
+
+    const games = [
+      {
+        id: "orbit-breaker",
+        title: "Orbit Breaker",
+        file: "orbit_breaker.html",
+        type: "One-Button Survival",
+        icon: "O",
+        accent: "linear-gradient(135deg, #d8ff4f, #55e8ff)",
+        blurb: "Shift between unstable gravity rails, dodge red fractures, collect energy shards, and chain perfect near-misses as the orbit accelerates.",
+        tags: ["Touch controls", "Space bar", "One button", "High score"]
+      },
+      {
+        id: "riftbound-skybreak",
+        title: "Riftbound: Skybreak",
+        file: "riftbound_skybreak.html",
+        type: "Arena Roguelite",
+        icon: "R",
+        accent: "linear-gradient(135deg, #62f5ff, #ff4fa3)",
+        blurb: "Shatter enemy waves, chain score combos, choose run-changing powers, and survive the Rift King in a neon sky arena.",
+        tags: ["Touch controls", "WASD", "Auto-fire", "Boss waves"]
+      },
+      {
+        id: "code-busters",
+        title: "Code Busters",
+        file: "code_busters.html",
+        type: "Cipher Puzzle",
+        icon: "#",
+        accent: "linear-gradient(135deg, #64d2ff, #ffd166)",
+        blurb: "Crack substitution ciphers with a timer, frequency analysis, decoder ring, hints, mistake tracking, keyboard guesses, and score streaks.",
+        tags: ["Mobile layout", "Keyboard letters", "Logic puzzle", "Timed cases"]
+      },
+      {
+        id: "music-player",
+        title: "Pulse Deck",
+        file: "music_player.html",
+        type: "Audio Tool",
+        icon: "♪",
+        accent: "linear-gradient(135deg, #7af0a6, #64d2ff)",
+        blurb: "A local music queue with imported audio, shuffle, repeat, captions, keyboard seeking, and a live visualizer.",
+        tags: ["Mobile layout", "Space play", "Arrow seek", "Local files"]
+      },
+      {
+        id: "sixty-seven-rush",
+        title: "Sixty Seven Rush",
+        file: "sixty_seven_rush.html",
+        type: "Number Arcade",
+        icon: "67",
+        accent: "linear-gradient(135deg, #62d5ff, #70f0a8)",
+        blurb: "Collect number shards to land exactly on 67, dodge overflow hazards, race the clock, and stack bigger exact-score rounds.",
+        tags: ["Touch controls", "WASD", "Arrow keys", "Exact 67"]
+      },
+      {
+        id: "rivals-loadout",
+        title: "Rivals FPS Loadout Trainer",
+        file: "rivals_loadout_trainer.html",
+        type: "Aim Trainer",
+        icon: "R",
+        accent: "linear-gradient(135deg, #ffd166, #7c5cff)",
+        blurb: "A full-screen FPS practice arena for testing loadouts, movement, NPC difficulty, weapon swaps, reloads, specials, and custom keybinds.",
+        tags: ["Mobile toggle", "WASD", "Mouse look", "Custom keys"]
+      },
+      {
+        id: "snack-comet",
+        title: "Snack Comet Chaos",
+        file: "snack_comet_chaos.html",
+        type: "Arcade Survival",
+        icon: "S",
+        accent: "linear-gradient(135deg, #7cf77a, #ff69a8)",
+        blurb: "Grab snacks, dodge comets, chain combos, pick upgrades between waves, and push from Normal into Spicy or Chaos mode.",
+        tags: ["Mobile friendly", "WASD", "Mouse aim", "Space dash"]
+      },
+      {
+        id: "stupid-card-battle",
+        title: "Stupid Card Battle",
+        file: "stupid_card_battle.html",
+        type: "Deck Battle",
+        icon: "C",
+        accent: "linear-gradient(135deg, #ffd86b, #64d2ff)",
+        blurb: "A mall dungeon card battler with shops, deck trimming, enemy intents, block timing, gold upgrades, and keyboard-selectable cards.",
+        tags: ["Mobile layout", "Keyboard focus", "Turn based", "Deck shop"]
+      },
+      {
+        id: "strongest-duo",
+        title: "The Strongest Duo & Trio",
+        file: "the_strongest_duo.html",
+        type: "Team Card Brawl",
+        icon: "2",
+        accent: "linear-gradient(135deg, #a78bfa, #ffd84d)",
+        blurb: "Choose a duo or trio, control separate visible decks, combine teammates, and manage the one-attack turn rule against rival Noobs.",
+        tags: ["Mobile layout", "Keyboard focus", "Duo mode", "Trio mode"]
+      },
+      {
+        id: "bawugana-rat",
+        title: "Rat & the Bawugana Brigade",
+        file: "bawugana_bawuganiii_rat_game.html",
+        type: "Adventure Arcade",
+        icon: "B",
+        accent: "linear-gradient(135deg, #f7a8c4, #ffd166)",
+        blurb: "Guide Rat and the cat crew through treat rescues, vacuum hazards, custom floors, upgrades, tokens, abilities, and touch controls.",
+        tags: ["Touch controls", "WASD", "Mouse aim", "Space vault"]
+      },
+      {
+        id: "aim-3d-trainer",
+        title: "3D Aim Trainer",
+        file: "aim_3d_trainer.html",
+        type: "FPS Aim Trainer",
+        icon: "+",
+        accent: "linear-gradient(135deg, #ff6470, #ffd166)",
+        blurb: "Practice precision, tracking, flicks, and target switching in a configurable first-person training range with desktop and mobile controls.",
+        tags: ["Mouse aim", "Touch controls", "3D range", "Training modes"]
+      },
+      {
+        id: "moon-mart-mayhem",
+        title: "Moon Mart Mayhem",
+        file: "moon_mart_mayhem.html",
+        type: "Space Shop Arcade",
+        icon: "M",
+        accent: "linear-gradient(135deg, #a78bfa, #64d2ff)",
+        blurb: "Run a chaotic lunar convenience store, serve customers, stop thieves, crack open crates, buy upgrades, and survive random events.",
+        tags: ["Click or tap", "Space burst", "Upgrades", "Random events"]
+      },
+      {
+        id: "neon-blaster",
+        title: "Neon Blaster",
+        file: "neon_blaster.html",
+        type: "Twin-Stick Shooter",
+        icon: "N",
+        accent: "linear-gradient(135deg, #64d2ff, #ff78a5)",
+        blurb: "Dash through a glowing arena, aim freely, hold to fire, clear enemy waves, and build a bigger score before the neon swarm closes in.",
+        tags: ["Touch controls", "WASD", "Mouse aim", "Space dash"]
+      },
+      {
+        id: "orbit-post",
+        title: "Orbit Post",
+        file: "orbit_post.html",
+        type: "Tiny Planet Courier",
+        icon: "P",
+        accent: "linear-gradient(135deg, #ffd166, #7af0a6)",
+        blurb: "Pilot a tiny courier ship, collect color-coded parcels, and deliver them to the matching moons while managing momentum in orbit.",
+        tags: ["Touch controls", "WASD", "Arrow keys", "Physics flight"]
+      },
+      {
+        id: "rift-67",
+        title: "RIFT 67",
+        file: "rift_67.html",
+        type: "Action Roguelite",
+        icon: "67",
+        accent: "linear-gradient(135deg, #c8ff38, #a78bfa)",
+        blurb: "Dive into a collapsing city, rescue sparks, assemble an impossible loadout, and survive seven escalating waves and a final boss.",
+        tags: ["Touch controls", "WASD", "Auto-fire", "Boss fight"]
+      },
+      {
+        id: "swipe-the-crown",
+        title: "Swipe the Crown",
+        file: "swipe_the_crown.html",
+        type: "Stealth Heist",
+        icon: "C",
+        accent: "linear-gradient(135deg, #f4c542, #ef3e36)",
+        blurb: "Sneak through the Royale Gallery, evade guards and cameras, disable security, steal the crown, and escape to the van.",
+        tags: ["Touch controls", "WASD", "Stealth", "Multiple contracts"]
+      },
+      {
+        id: "lane-shift-67", title: "Lane Shift 67", file: "lane_shift_67.html", type: "Lane Survival", icon: "3",
+        accent: "linear-gradient(135deg, #64d2ff, #ffd166)", blurb: "Minigame: switch between three lanes, dodge incoming blockers, and keep scoring as the highway accelerates.",
+        tags: ["Touch controls", "Arrow keys", "One-button style", "High score"]
+      },
+      {
+        id: "bullseye-blitz", title: "Bullseye Blitz", file: "bullseye_blitz.html", type: "Precision Challenge", icon: "◎",
+        accent: "linear-gradient(135deg, #ff6470, #ffd166)", blurb: "Minigame: hit shrinking targets, build a precision combo, and chase the biggest score possible in thirty seconds.",
+        tags: ["Touch controls", "Mouse aim", "30 seconds", "Combo scoring"]
+      },
+      {
+        id: "signal-stack", title: "Signal Stack", file: "signal_stack.html", type: "Pattern Memory", icon: "4",
+        accent: "linear-gradient(135deg, #a78bfa, #64d2ff)", blurb: "Minigame: watch a four-color signal and repeat the growing sequence without making a single mistake.",
+        tags: ["Touch controls", "Number keys", "Memory", "Endless rounds"]
+      },
+      {
+        id: "skyline-stack", title: "Skyline Stack", file: "skyline_stack.html", type: "Tower Builder", icon: "▤",
+        accent: "linear-gradient(135deg, #ff78a5, #ffd166)", blurb: "Minigame: drop moving floors with perfect timing and build the tallest neon skyline you can.",
+        tags: ["Touch controls", "Space bar", "One button", "Timing"]
+      },
+      {
+        id: "hyper-react", title: "Hyper React", file: "hyper_react.html", type: "Reaction Test", icon: "!",
+        accent: "linear-gradient(135deg, #7af0a6, #ff6470)", blurb: "Minigame: wait for the screen to turn green, then react instantly—but jump early and the run is over.",
+        tags: ["Touch controls", "Space bar", "Reaction time", "Personal best"]
+      },
+      {
+        id: "pixel-serpent", title: "Pixel Serpent", file: "pixel_serpent.html", type: "Grid Survival", icon: "S",
+        accent: "linear-gradient(135deg, #64d2ff, #ffd166)", blurb: "Minigame: collect gold pixels, grow longer, and avoid the walls and your own twisting tail.",
+        tags: ["WASD", "Arrow keys", "Classic arcade", "High score"]
+      },
+      {
+        id: "prism-break", title: "Prism Break", file: "prism_break.html", type: "Brick Breaker", icon: "◇",
+        accent: "linear-gradient(135deg, #a78bfa, #7af0a6)", blurb: "Minigame: steer the paddle, keep the ball alive, and clear all forty-five colored prism bricks.",
+        tags: ["Touch controls", "Mouse control", "45 bricks", "Physics"]
+      },
+      {
+        id: "goalie-67", title: "Goalie 67", file: "goalie_67.html", type: "Paddle Defense", icon: "G",
+        accent: "linear-gradient(135deg, #64d2ff, #ff78a5)", blurb: "Minigame: defend the left goal against an adaptive rival and send the ball through the opposite side.",
+        tags: ["Touch controls", "Mouse control", "Three lives", "Endless rally"]
+      },
+      {
+        id: "void-drifter", title: "Void Drifter", file: "void_drifter.html", type: "Asteroid Survival", icon: "V",
+        accent: "linear-gradient(135deg, #64d2ff, #a78bfa)", blurb: "Minigame: pilot through an increasingly crowded asteroid field and survive long enough to set a new record.",
+        tags: ["Touch controls", "WASD", "Arrow keys", "Survival timer"]
+      },
+      {
+        id: "color-conflict", title: "Color Conflict", file: "color_conflict.html", type: "Color Logic", icon: "C",
+        accent: "linear-gradient(135deg, #ffd166, #ff6470)", blurb: "Minigame: ignore the written word and choose the button matching its ink color before time runs out.",
+        tags: ["Touch controls", "Number keys", "30 seconds", "Brain game"]
+      },
+      {
+        id: "comet-flap", title: "Comet Flap", file: "comet_flap.html", type: "Flight Minigame", icon: "F", accent: "linear-gradient(135deg, #64d2ff, #a78bfa)",
+        blurb: "Minigame: flap a tiny comet through an endless field of energy gates.", tags: ["Touch controls", "Space bar", "One button", "Endless"]
+      },
+      {
+        id: "cosmic-catcher", title: "Cosmic Catcher", file: "cosmic_catcher.html", type: "Catching Minigame", icon: "★", accent: "linear-gradient(135deg, #ffd166, #64d2ff)",
+        blurb: "Minigame: catch falling stars in your basket while avoiding unstable red bombs.", tags: ["Touch controls", "Mouse", "Three lives", "High score"]
+      },
+      {
+        id: "glitch-whack", title: "Glitch Whack", file: "glitch_whack.html", type: "Reflex Minigame", icon: "!", accent: "linear-gradient(135deg, #ff78a5, #a78bfa)",
+        blurb: "Minigame: smash teleporting glitches before they disappear during a thirty-second sprint.", tags: ["Touch controls", "Mouse", "30 seconds", "Reflex"]
+      },
+      {
+        id: "maze-escape-67", title: "Maze Escape 67", file: "maze_escape_67.html", type: "Maze Minigame", icon: "M", accent: "linear-gradient(135deg, #7af0a6, #64d2ff)",
+        blurb: "Minigame: navigate the grid maze and reach the green exit without walking through walls.", tags: ["Touch controls", "WASD", "Arrow keys", "Puzzle"]
+      },
+      {
+        id: "turbo-type", title: "Turbo Type", file: "turbo_type.html", type: "Typing Minigame", icon: "T", accent: "linear-gradient(135deg, #64d2ff, #ffd166)",
+        blurb: "Minigame: type each arcade word perfectly before the thirty-second clock runs out.", tags: ["Keyboard", "Typing", "30 seconds", "Accuracy"]
+      },
+      {
+        id: "math-blaster", title: "Math Blaster 67", file: "math_blaster.html", type: "Math Minigame", icon: "+", accent: "linear-gradient(135deg, #ffd166, #ff6470)",
+        blurb: "Minigame: solve rapid addition problems and select the correct answer under pressure.", tags: ["Touch controls", "Mouse", "Mental math", "45 seconds"]
+      },
+      {
+        id: "golden-stop", title: "Golden Stop", file: "golden_stop.html", type: "Timing Minigame", icon: "|", accent: "linear-gradient(135deg, #ffd166, #7af0a6)",
+        blurb: "Minigame: stop the moving scanner inside the gold zone and chase near-perfect accuracy.", tags: ["Touch controls", "Space bar", "Timing", "Precision"]
+      },
+      {
+        id: "balance-beam", title: "Balance Beam", file: "balance_beam.html", type: "Balance Minigame", icon: "—", accent: "linear-gradient(135deg, #64d2ff, #7af0a6)",
+        blurb: "Minigame: counter the drifting platform and keep the ball balanced for thirty seconds.", tags: ["Touch controls", "Arrow keys", "WASD", "Balance"]
+      },
+      {
+        id: "orbit-swap", title: "Orbit Swap", file: "orbit_swap.html", type: "Orbit Minigame", icon: "O", accent: "linear-gradient(135deg, #a78bfa, #64d2ff)",
+        blurb: "Minigame: switch between two orbital rings to dodge incoming red satellites.", tags: ["Touch controls", "Space bar", "One button", "Survival"]
+      },
+      {
+        id: "minefield-mini", title: "Minefield Mini", file: "minefield_mini.html", type: "Logic Minigame", icon: "×", accent: "linear-gradient(135deg, #ff6470, #ffd166)",
+        blurb: "Minigame: open all twenty safe tiles without uncovering one of five hidden mines.", tags: ["Touch controls", "Mouse", "Logic", "Five mines"]
+      },
+      {
+        id: "tic-tac-67", title: "Tic-Tac 67", file: "tic_tac_67.html", type: "Strategy Minigame", icon: "X", accent: "linear-gradient(135deg, #64d2ff, #ff78a5)",
+        blurb: "Minigame: challenge the arcade CPU to a fast game of tic-tac-toe.", tags: ["Touch controls", "Mouse", "Strategy", "CPU opponent"]
+      },
+      {
+        id: "slide-nine", title: "Slide Nine", file: "slide_nine.html", type: "Puzzle Minigame", icon: "9", accent: "linear-gradient(135deg, #a78bfa, #ffd166)",
+        blurb: "Minigame: move numbered tiles into order using the board's single empty space.", tags: ["Touch controls", "Mouse", "Sliding puzzle", "Move counter"]
+      },
+      {
+        id: "traffic-hop", title: "Traffic Hop", file: "traffic_hop.html", type: "Crossing Minigame", icon: "H", accent: "linear-gradient(135deg, #7af0a6, #ff6470)",
+        blurb: "Minigame: hop across six traffic lanes while avoiding speeding neon cars.", tags: ["Touch controls", "WASD", "Arrow keys", "Traffic"]
+      },
+      {
+        id: "turbo-hop", title: "Turbo Hop", file: "turbo_hop.html", type: "Runner Minigame", icon: "J", accent: "linear-gradient(135deg, #64d2ff, #ff6470)",
+        blurb: "Minigame: jump over an accelerating stream of obstacles and keep your streak alive.", tags: ["Touch controls", "Space bar", "One button", "Endless runner"]
+      },
+      {
+        id: "pixel-fishing", title: "Pixel Fishing", file: "pixel_fishing.html", type: "Fishing Minigame", icon: "~", accent: "linear-gradient(135deg, #64d2ff, #7af0a6)",
+        blurb: "Minigame: wait patiently for a bite, then react before the pixel fish escapes.", tags: ["Touch controls", "Space bar", "Reaction", "Fishing"]
+      },
+      {
+        id: "arrow-lock", title: "Arrow Lock", file: "arrow_lock.html", type: "Sequence Minigame", icon: "→", accent: "linear-gradient(135deg, #ffd166, #a78bfa)",
+        blurb: "Minigame: enter the displayed arrow combination before the security alarm reaches zero.", tags: ["Touch controls", "Arrow keys", "Sequence", "Timer"]
+      },
+      {
+        id: "beat-lane-67", title: "Beat Lane 67", file: "beat_lane_67.html", type: "Rhythm Minigame", icon: "♪", accent: "linear-gradient(135deg, #ff78a5, #64d2ff)",
+        blurb: "Minigame: hit falling notes at the judgment line using four keyboard lanes.", tags: ["A S K L", "Rhythm", "30 seconds", "Five misses"]
+      },
+      {
+        id: "gravity-flip", title: "Gravity Flip", file: "gravity_flip.html", type: "Gravity Minigame", icon: "↕", accent: "linear-gradient(135deg, #64d2ff, #ffd166)",
+        blurb: "Minigame: flip between the floor and ceiling to dodge barriers on both sides.", tags: ["Touch controls", "Space bar", "One button", "Endless runner"]
+      },
+      {
+        id: "bubble-burst-67", title: "Bubble Burst 67", file: "bubble_burst_67.html", type: "Popping Minigame", icon: "○", accent: "linear-gradient(135deg, #64d2ff, #a78bfa)",
+        blurb: "Minigame: pop as many rising bubbles as possible before the timer expires.", tags: ["Touch controls", "Mouse", "30 seconds", "High score"]
+      },
+      {
+        id: "core-shield", title: "Core Shield", file: "core_shield.html", type: "Defense Minigame", icon: "C", accent: "linear-gradient(135deg, #ffd166, #64d2ff)",
+        blurb: "Minigame: rotate an energy shield around the core and block every incoming projectile.", tags: ["Touch controls", "Arrow keys", "WASD", "Five health"]
+      },
+      {
+        id: "super-cross-hair",
+        title: "Super Cross Hair",
+        file: "file:///Volumes/Super%20Cross%20Hair/Super%20Cross%20Hair.app/",
+        displayFile: "Super Cross Hair.app",
+        type: "Desktop Utility",
+        icon: "+",
+        accent: "linear-gradient(135deg, #ff6470, #64d2ff)",
+        blurb: "A macOS crosshair utility for high-resolution displays, with optional visual reactions when the mouse is clicked.",
+        tags: ["Desktop app", "Mouse clicks", "macOS 12+", "Utility"]
+      }
+    ];
+
+    const byId = Object.fromEntries(games.map(game => [game.id, game]));
+    const grid = document.getElementById("gameGrid");
+    const recentList = document.getElementById("recentList");
+    const clearRecent = document.getElementById("clearRecent");
+
+    function readRecent() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(storageKey) || "[]");
+        return Array.isArray(parsed) ? parsed.filter(item => byId[item.id]) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecent(items) {
+      localStorage.setItem(storageKey, JSON.stringify(items.slice(0, 6)));
+    }
+
+    function stamp(game) {
+      const previous = readRecent().filter(item => item.id !== game.id);
+      saveRecent([{ id: game.id, playedAt: Date.now() }, ...previous]);
+    }
+
+    function relativeTime(time) {
+      const seconds = Math.max(1, Math.floor((Date.now() - time) / 1000));
+      if (seconds < 60) return "just now";
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} min ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} hr ago`;
+      const days = Math.floor(hours / 24);
+      return `${days} day${days === 1 ? "" : "s"} ago`;
+    }
+
+    function launch(event) {
+      const id = event.currentTarget.dataset.game;
+      const game = byId[id];
+      if (!game) return;
+      stamp(game);
+    }
+
+    function tagHTML(tags) {
+      return tags.map(tag => `<span class="tag">${tag}</span>`).join("");
+    }
+
+    function renderCards() {
+      grid.innerHTML = games.map(game => `
+        <article class="game-card" style="--accent:${game.accent}">
+          <div class="card-top">
+            <div class="card-icon" aria-hidden="true">${game.icon}</div>
+            <div class="type">${game.type}</div>
+          </div>
+          <h3>${game.title}</h3>
+          <p>${game.blurb}</p>
+          <div class="tags" aria-label="${game.title} tags">${tagHTML(game.tags)}</div>
+          <div class="actions">
+            <a class="play" href="${game.file}" data-game="${game.id}">${game.file.endsWith(".html") ? "Play" : "Open"} ${game.title}</a>
+            <a class="file-link" href="${game.file}" data-game="${game.id}" aria-label="Open ${game.displayFile || game.file}">${game.displayFile || game.file.replace(".html", "")}</a>
+          </div>
+        </article>
+      `).join("");
+
+      document.querySelectorAll("[data-game]").forEach(link => {
+        link.addEventListener("click", launch);
+      });
+    }
+
+    function renderRecent() {
+      const recent = readRecent().slice(0, 3);
+      if (!recent.length) {
+        recentList.innerHTML = `<div class="recent-empty">Nothing here yet. Launch a game and it will appear in this row.</div>`;
+        return;
+      }
+
+      recentList.innerHTML = recent.map(item => {
+        const game = byId[item.id];
+        return `
+          <a class="recent-item" href="${game.file}" data-game="${game.id}" style="--accent:${game.accent}">
+            <span class="recent-icon" aria-hidden="true">${game.icon}</span>
+            <span>
+              <span class="recent-title">${game.title}</span>
+              <span class="recent-meta">${relativeTime(item.playedAt)} · ${game.type}</span>
+            </span>
+            <span class="mini-play" aria-hidden="true">▶</span>
+          </a>
+        `;
+      }).join("");
+
+      recentList.querySelectorAll("[data-game]").forEach(link => {
+        link.addEventListener("click", launch);
+      });
+    }
+
+    clearRecent.addEventListener("click", () => {
+      localStorage.removeItem(storageKey);
+      renderRecent();
+    });
+
+    renderCards();
+    renderRecent();
+  </script>
+</body>
+</html>

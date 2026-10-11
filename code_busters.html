@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Code Busters: Cipher Lab</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0e1117;
+      --ink: #f8fbff;
+      --muted: #aab4c2;
+      --panel: rgba(20, 24, 32, 0.92);
+      --line: rgba(255, 255, 255, 0.15);
+      --gold: #ffd166;
+      --cyan: #64d2ff;
+      --green: #7af0a6;
+      --pink: #ff78a5;
+      --red: #ff6470;
+      --black: #07090d;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        linear-gradient(120deg, rgba(100, 210, 255, 0.14), transparent 32%),
+        linear-gradient(240deg, rgba(255, 120, 165, 0.12), transparent 34%),
+        linear-gradient(180deg, #171b24 0%, var(--bg) 58%, #080a0f 100%);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+      color: var(--ink);
+      font-weight: 900;
+      cursor: pointer;
+    }
+    button.primary {
+      background: linear-gradient(135deg, var(--gold), var(--green));
+      color: #07110b;
+      border-color: rgba(255, 209, 102, .72);
+      box-shadow: inset 0 -5px rgba(0,0,0,.14);
+    }
+    button.danger {
+      border-color: rgba(255, 100, 112, .45);
+      background: rgba(255, 100, 112, .13);
+    }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    button:focus-visible, select:focus-visible {
+      outline: 3px solid var(--gold);
+      outline-offset: 3px;
+    }
+    .game {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 12px;
+      padding: 14px;
+    }
+    .topbar, .status, .cipher, .side-panel, .keyboard, .modal-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: inset 0 1px rgba(255,255,255,.08), 0 18px 44px rgba(0,0,0,.3);
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(28px, 5vw, 48px); line-height: .95; letter-spacing: 0; }
+    .subline { margin-top: 7px; color: var(--muted); font-size: 13px; line-height: 1.35; }
+    .select-wrap { display: grid; gap: 5px; min-width: 154px; }
+    .select-wrap span, .stat span, .side-panel h2, .case-file span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    select {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 10px;
+      background: #121722;
+      color: var(--ink);
+      font-weight: 800;
+    }
+    .status {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(96px, 1fr));
+      gap: 8px;
+      padding: 10px;
+    }
+    .stat {
+      min-height: 54px;
+      padding: 8px 10px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+    }
+    .stat strong { display: block; margin-top: 4px; font-size: 21px; line-height: 1; }
+    .board {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 332px;
+      gap: 12px;
+    }
+    .cipher {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      padding: 14px;
+    }
+    .case-file {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255,209,102,.12), transparent 42%), rgba(255,255,255,.05);
+    }
+    .case-file strong { display: block; margin-top: 5px; font-size: 18px; line-height: 1.2; }
+    .progress { width: min(210px, 100%); height: 14px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.12); }
+    .progress i { display: block; width: 0%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--cyan), var(--green)); transition: width 160ms ease; }
+    .quote {
+      align-content: start;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 10px;
+      min-height: 330px;
+      overflow: auto;
+      padding: 4px;
+    }
+    .word { display: inline-flex; gap: 4px; flex-wrap: nowrap; align-items: end; }
+    .cell {
+      width: 42px;
+      height: 58px;
+      display: grid;
+      grid-template-rows: 28px 18px;
+      gap: 3px;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 8px;
+      background: rgba(255,255,255,.055);
+      transition: transform 110ms ease, border-color 110ms ease, background 110ms ease;
+    }
+    .cell:hover, .cell.active {
+      transform: translateY(-2px);
+      border-color: rgba(255,209,102,.7);
+      background: rgba(255,209,102,.12);
+    }
+    .plain {
+      min-width: 26px;
+      min-height: 27px;
+      display: grid;
+      place-items: center;
+      border-bottom: 2px solid rgba(255,255,255,.25);
+      color: var(--gold);
+      font-size: 22px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .plain.empty { color: rgba(255,255,255,.34); }
+    .cipher-char { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .mark-correct { border-color: rgba(122,240,166,.48); background: rgba(122,240,166,.1); }
+    .mark-wrong { border-color: rgba(255,100,112,.55); background: rgba(255,100,112,.12); }
+    .punct { height: 58px; display: grid; place-items: end center; color: var(--ink); font-size: 24px; font-weight: 900; padding: 0 1px 6px; }
+    .keyboard { display: grid; gap: 8px; padding: 10px; }
+    .keys { display: grid; grid-template-columns: repeat(13, minmax(32px, 1fr)); gap: 6px; }
+    .key { min-height: 38px; padding: 0; background: rgba(255,255,255,.075); }
+    .key.used { color: var(--black); background: var(--cyan); border-color: rgba(100,210,255,.7); }
+    .tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .side-panel { min-width: 0; display: grid; grid-template-rows: auto auto 1fr; gap: 12px; padding: 14px; }
+    .side-panel h2 { color: var(--gold); margin-bottom: 7px; }
+    .map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .map-row, .freq-row, .log-row {
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      background: rgba(255,255,255,.055);
+    }
+    .map-row { min-height: 36px; display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 7px; padding: 6px 8px; font-weight: 900; }
+    .map-row i { display: grid; place-items: center; width: 28px; height: 24px; border-radius: 6px; background: rgba(100,210,255,.16); color: var(--cyan); font-style: normal; }
+    .freq { display: grid; gap: 6px; }
+    .freq-row { min-height: 28px; display: grid; grid-template-columns: 22px 1fr 32px; gap: 7px; align-items: center; padding: 5px 7px; color: var(--muted); font-size: 12px; font-weight: 800; }
+    .freq-row b { color: var(--ink); font-size: 14px; }
+    .freq-bar { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.12); }
+    .freq-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--pink), var(--gold)); }
+    .log { min-height: 150px; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+    .log-row { padding: 8px; color: var(--muted); font-size: 13px; line-height: 1.3; }
+    .overlay { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: rgba(4,6,11,.74); backdrop-filter: blur(5px); }
+    .overlay.hidden { display: none; }
+    .modal-card { width: min(760px, 100%); padding: 22px; background: rgba(20,24,32,.98); }
+    .modal-card h2 { font-size: clamp(32px, 7vw, 62px); line-height: .94; margin-bottom: 10px; }
+    .modal-card p { color: var(--muted); line-height: 1.45; margin-bottom: 14px; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 980px) {
+      .topbar, .board { grid-template-columns: 1fr; }
+      .status { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .side-panel { grid-template-rows: auto; }
+    }
+    @media (max-width: 680px) {
+      .game { padding: 10px; }
+      .status { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cell { width: 32px; height: 52px; }
+      .plain { font-size: 18px; }
+      .cipher-char { font-size: 11px; }
+      .keys { grid-template-columns: repeat(7, minmax(34px, 1fr)); }
+      .tools, .modal-actions, .case-file, .map { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <section class="topbar" aria-labelledby="gameTitle">
+      <div>
+        <h1 id="gameTitle">Code Busters</h1>
+        <p class="subline">Crack the substitution cipher before the case timer runs dry.</p>
+      </div>
+      <label class="select-wrap"><span>Case</span><select id="caseSelect"></select></label>
+      <label class="select-wrap">
+        <span>Difficulty</span>
+        <select id="difficultySelect">
+          <option value="rookie">Rookie</option>
+          <option value="agent" selected>Agent</option>
+          <option value="master">Master</option>
+        </select>
+      </label>
+      <button class="primary" id="newCase" type="button">New Case</button>
+    </section>
+    <section class="status" aria-label="Game status">
+      <div class="stat"><span>Time</span><strong id="time">05:00</strong></div>
+      <div class="stat"><span>Solved</span><strong id="solved">0%</strong></div>
+      <div class="stat"><span>Mistakes</span><strong id="mistakes">0</strong></div>
+      <div class="stat"><span>Hints</span><strong id="hints">3</strong></div>
+      <div class="stat"><span>Score</span><strong id="score">0</strong></div>
+      <div class="stat"><span>Streak</span><strong id="streak">0</strong></div>
+    </section>
+    <section class="board">
+      <article class="cipher">
+        <div class="case-file">
+          <div><span id="caseType">Monoalphabetic Substitution</span><strong id="caseTitle">Case File</strong></div>
+          <div class="progress" aria-hidden="true"><i id="progressBar"></i></div>
+        </div>
+        <div class="quote" id="quote" aria-label="Cipher text"></div>
+        <div class="keyboard">
+          <div class="keys" id="keys" aria-label="Letter keyboard"></div>
+          <div class="tools">
+            <button id="erase" type="button">Erase</button>
+            <button id="hint" type="button">Hint</button>
+            <button id="check" type="button">Check</button>
+            <button class="danger" id="reveal" type="button">Reveal</button>
+          </div>
+        </div>
+      </article>
+      <aside class="side-panel">
+        <section><h2>Decoder Ring</h2><div class="map" id="map"></div></section>
+        <section><h2>Frequency</h2><div class="freq" id="freq"></div></section>
+        <section><h2>Case Log</h2><div class="log" id="log"></div></section>
+      </aside>
+    </section>
+  </main>
+  <div class="overlay" id="startOverlay">
+    <div class="modal-card">
+      <h2>Enter the Cipher Lab</h2>
+      <p>Each encrypted letter always stands for the same real letter. Pick a cipher symbol, choose your guess, and use frequency clues to pin down the message.</p>
+      <div class="modal-actions">
+        <button class="primary" id="startGame" type="button">Start Case</button>
+        <button id="practiceHint" type="button">Give Me A Hint</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const cases = [
+      { title: "Midnight Lab Note", type: "Monoalphabetic Substitution", quote: "THE SECRET OF GETTING AHEAD IS GETTING STARTED", author: "Mark Twain" },
+      { title: "Tournament Locker", type: "Monoalphabetic Substitution", quote: "VICTORY BELONGS TO THE MOST PERSEVERING", author: "Napoleon Bonaparte" },
+      { title: "Signal From The Stands", type: "Monoalphabetic Substitution", quote: "NO PRESSURE NO DIAMONDS", author: "Thomas Carlyle" },
+      { title: "Practice Room Wall", type: "Monoalphabetic Substitution", quote: "SKILL IS BUILT BY DOING SMALL THINGS WELL", author: "Cipher Lab" },
+      { title: "Final Bell", type: "Monoalphabetic Substitution", quote: "A GOOD PUZZLE MAKES THE ANSWER FEEL INEVITABLE", author: "Cipher Lab" }
+    ];
+    const difficulty = {
+      rookie: { seconds: 420, hints: 5, revealMap: 3, penalty: 4 },
+      agent: { seconds: 300, hints: 3, revealMap: 1, penalty: 8 },
+      master: { seconds: 210, hints: 1, revealMap: 0, penalty: 14 }
+    };
+    const ui = {
+      caseSelect: document.getElementById("caseSelect"), difficultySelect: document.getElementById("difficultySelect"), newCase: document.getElementById("newCase"),
+      time: document.getElementById("time"), solved: document.getElementById("solved"), mistakes: document.getElementById("mistakes"), hints: document.getElementById("hints"),
+      score: document.getElementById("score"), streak: document.getElementById("streak"), progressBar: document.getElementById("progressBar"), caseType: document.getElementById("caseType"),
+      caseTitle: document.getElementById("caseTitle"), quote: document.getElementById("quote"), keys: document.getElementById("keys"), erase: document.getElementById("erase"),
+      hint: document.getElementById("hint"), check: document.getElementById("check"), reveal: document.getElementById("reveal"), map: document.getElementById("map"),
+      freq: document.getElementById("freq"), log: document.getElementById("log"), startOverlay: document.getElementById("startOverlay"), startGame: document.getElementById("startGame"),
+      practiceHint: document.getElementById("practiceHint")
+    };
+    const state = { caseIndex: 0, cipher: "", reverseMap: {}, guesses: {}, activeCipher: "", seconds: 300, hints: 3, mistakes: 0, score: 0, streak: 0, running: false, solved: false, timer: null, revealed: false };
+    function shuffle(items) {
+      const copy = items.slice();
+      for (let index = copy.length - 1; index > 0; index -= 1) {
+        const swap = Math.floor(Math.random() * (index + 1));
+        [copy[index], copy[swap]] = [copy[swap], copy[index]];
+      }
+      return copy;
+    }
+    function makeCipherMap() {
+      let shuffled = shuffle(alphabet);
+      while (shuffled.some((letter, index) => letter === alphabet[index])) shuffled = shuffle(alphabet);
+      return Object.fromEntries(alphabet.map((letter, index) => [letter, shuffled[index]]));
+    }
+    function encode(text, map) { return text.replace(/[A-Z]/g, letter => map[letter]); }
+    function formatTime(seconds) {
+      return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+    }
+    function log(message) {
+      const row = document.createElement("div");
+      row.className = "log-row";
+      row.textContent = message;
+      ui.log.prepend(row);
+      while (ui.log.children.length > 7) ui.log.lastElementChild.remove();
+    }
+    function getLetters() { return state.cipher.match(/[A-Z]/g) || []; }
+    function plainLetters() { return cases[state.caseIndex].quote.match(/[A-Z]/g) || []; }
+    function solvedCount() {
+      return getLetters().filter((cipherLetter, index) => state.guesses[cipherLetter] === plainLetters()[index]).length;
+    }
+    function solvedPercent() { return Math.round((solvedCount() / (getLetters().length || 1)) * 100); }
+    function renderStatus() {
+      const percent = solvedPercent();
+      ui.time.textContent = formatTime(state.seconds);
+      ui.solved.textContent = `${percent}%`;
+      ui.mistakes.textContent = state.mistakes;
+      ui.hints.textContent = state.hints;
+      ui.score.textContent = state.score;
+      ui.streak.textContent = state.streak;
+      ui.progressBar.style.width = `${percent}%`;
+      ui.hint.disabled = state.hints <= 0 || state.solved || !state.running;
+      ui.erase.disabled = !state.activeCipher || state.solved || !state.running;
+      ui.check.disabled = state.solved || !state.running;
+      ui.reveal.disabled = state.solved || state.revealed;
+    }
+    function renderQuote() {
+      const words = state.cipher.split(" ");
+      let plainOffset = 0;
+      ui.quote.innerHTML = "";
+      words.forEach(word => {
+        const wordEl = document.createElement("span");
+        wordEl.className = "word";
+        word.split("").forEach(char => {
+          if (!/[A-Z]/.test(char)) {
+            const punct = document.createElement("span");
+            punct.className = "punct";
+            punct.textContent = char;
+            wordEl.appendChild(punct);
+            return;
+          }
+          const plainLetter = plainLetters()[plainOffset];
+          plainOffset += 1;
+          const guess = state.guesses[char] || "";
+          const cell = document.createElement("button");
+          cell.className = "cell";
+          if (state.activeCipher === char) cell.classList.add("active");
+          if (guess && guess === plainLetter) cell.classList.add("mark-correct");
+          if (guess && guess !== plainLetter) cell.classList.add("mark-wrong");
+          cell.type = "button";
+          cell.dataset.cipher = char;
+          cell.setAttribute("aria-label", `Cipher ${char}, guessed ${guess || "blank"}`);
+          cell.innerHTML = `<span class="plain ${guess ? "" : "empty"}">${guess || "?"}</span><span class="cipher-char">${char}</span>`;
+          cell.addEventListener("click", () => selectCipher(char));
+          wordEl.appendChild(cell);
+        });
+        ui.quote.appendChild(wordEl);
+      });
+    }
+    function renderKeys() {
+      const guessed = new Set(Object.values(state.guesses));
+      ui.keys.innerHTML = "";
+      alphabet.forEach(letter => {
+        const key = document.createElement("button");
+        key.className = `key ${guessed.has(letter) ? "used" : ""}`;
+        key.type = "button";
+        key.textContent = letter;
+        key.addEventListener("click", () => guessLetter(letter));
+        ui.keys.appendChild(key);
+      });
+    }
+    function renderMap() {
+      const cipherLetters = [...new Set(getLetters())].sort();
+      ui.map.innerHTML = cipherLetters.map(letter => `<div class="map-row"><i>${letter}</i><span>${state.guesses[letter] || "-"}</span></div>`).join("");
+    }
+    function renderFrequency() {
+      const counts = getLetters().reduce((acc, letter) => {
+        acc[letter] = (acc[letter] || 0) + 1;
+        return acc;
+      }, {});
+      const rows = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const max = rows[0]?.[1] || 1;
+      ui.freq.innerHTML = rows.map(([letter, count]) => `<div class="freq-row"><b>${letter}</b><span class="freq-bar"><i style="width:${Math.max(12, (count / max) * 100)}%"></i></span><span>${count}</span></div>`).join("");
+    }
+    function render() {
+      ui.caseType.textContent = cases[state.caseIndex].type;
+      ui.caseTitle.textContent = `${cases[state.caseIndex].title} / ${cases[state.caseIndex].author}`;
+      renderQuote();
+      renderKeys();
+      renderMap();
+      renderFrequency();
+      renderStatus();
+    }
+    function selectCipher(letter) {
+      if (!state.running || state.solved) return;
+      state.activeCipher = letter;
+      render();
+    }
+    function firstUnsolvedCipher() {
+      return getLetters().find((cipherLetter, index) => state.guesses[cipherLetter] !== plainLetters()[index]) || "";
+    }
+    function scoreGuess(cipherLetter, plainLetter) {
+      const correct = state.reverseMap[cipherLetter] === plainLetter;
+      if (correct) {
+        state.streak += 1;
+        state.score += 20 + Math.min(40, state.streak * 4);
+        log(`${cipherLetter} = ${plainLetter}. Clean solve.`);
+      } else {
+        state.streak = 0;
+        state.mistakes += 1;
+        state.score = Math.max(0, state.score - difficulty[ui.difficultySelect.value].penalty);
+        log(`${cipherLetter} = ${plainLetter} does not fit the case.`);
+      }
+      checkWin();
+    }
+    function guessLetter(letter) {
+      if (!state.running || state.solved) return;
+      if (!state.activeCipher) state.activeCipher = firstUnsolvedCipher();
+      if (!state.activeCipher) return;
+      const previous = state.guesses[state.activeCipher];
+      state.guesses[state.activeCipher] = letter;
+      scoreGuess(state.activeCipher, letter);
+      const next = firstUnsolvedCipher();
+      if (previous !== letter && next) state.activeCipher = next;
+      render();
+    }
+    function eraseActive() {
+      if (!state.activeCipher || state.solved) return;
+      delete state.guesses[state.activeCipher];
+      state.streak = 0;
+      log(`${state.activeCipher} cleared.`);
+      render();
+    }
+    function giveHint() {
+      if (state.hints <= 0 || state.solved) return;
+      const target = firstUnsolvedCipher();
+      if (!target) return;
+      state.activeCipher = target;
+      state.guesses[target] = state.reverseMap[target];
+      state.hints -= 1;
+      state.score = Math.max(0, state.score - 15);
+      log(`Hint used: ${target} = ${state.reverseMap[target]}.`);
+      state.activeCipher = firstUnsolvedCipher();
+      checkWin();
+      render();
+    }
+    function checkPuzzle() {
+      if (state.solved) return;
+      const percent = solvedPercent();
+      if (percent === 100) {
+        checkWin();
+      } else {
+        state.mistakes += 1;
+        state.streak = 0;
+        state.score = Math.max(0, state.score - 10);
+        log(`Check failed. ${100 - percent}% still needs work.`);
+        render();
+      }
+    }
+    function revealPuzzle() {
+      state.revealed = true;
+      getLetters().forEach(cipherLetter => { state.guesses[cipherLetter] = state.reverseMap[cipherLetter]; });
+      state.score = 0;
+      state.running = false;
+      clearInterval(state.timer);
+      log(`Revealed: ${cases[state.caseIndex].quote}`);
+      render();
+    }
+    function checkWin() {
+      if (solvedPercent() !== 100) return;
+      state.solved = true;
+      state.running = false;
+      state.score += state.seconds * 2 + Math.max(0, 120 - state.mistakes * 8);
+      clearInterval(state.timer);
+      log("Case closed. Cipher solved.");
+    }
+    function tick() {
+      if (!state.running) return;
+      state.seconds -= 1;
+      if (state.seconds <= 0) {
+        state.seconds = 0;
+        state.running = false;
+        clearInterval(state.timer);
+        log("Time expired. The case stays open.");
+      }
+      renderStatus();
+    }
+    function startCase() {
+      clearInterval(state.timer);
+      state.caseIndex = Number(ui.caseSelect.value);
+      const settings = difficulty[ui.difficultySelect.value];
+      const cipherMap = makeCipherMap();
+      state.reverseMap = Object.fromEntries(Object.entries(cipherMap).map(([plain, cipher]) => [cipher, plain]));
+      state.cipher = encode(cases[state.caseIndex].quote, cipherMap);
+      state.guesses = {};
+      state.activeCipher = "";
+      state.seconds = settings.seconds;
+      state.hints = settings.hints;
+      state.mistakes = 0;
+      state.score = 0;
+      state.streak = 0;
+      state.running = true;
+      state.solved = false;
+      state.revealed = false;
+      ui.log.innerHTML = "";
+      ui.startOverlay.classList.add("hidden");
+      shuffle([...new Set(getLetters())]).slice(0, settings.revealMap).forEach(letter => { state.guesses[letter] = state.reverseMap[letter]; });
+      state.activeCipher = firstUnsolvedCipher();
+      log("New encrypted case loaded.");
+      if (settings.revealMap) log(`${settings.revealMap} starter mapping${settings.revealMap === 1 ? "" : "s"} placed on the board.`);
+      state.timer = setInterval(tick, 1000);
+      render();
+    }
+    function populateCases() {
+      ui.caseSelect.innerHTML = cases.map((item, index) => `<option value="${index}">${item.title}</option>`).join("");
+    }
+    ui.newCase.addEventListener("click", startCase);
+    ui.startGame.addEventListener("click", startCase);
+    ui.practiceHint.addEventListener("click", () => {
+      log("Start with common letters: E, T, A, O, I, N. Repeated cipher letters usually reveal repeated real letters.");
+    });
+    ui.erase.addEventListener("click", eraseActive);
+    ui.hint.addEventListener("click", giveHint);
+    ui.check.addEventListener("click", checkPuzzle);
+    ui.reveal.addEventListener("click", revealPuzzle);
+    document.addEventListener("keydown", event => {
+      if (event.target.matches("select, button") && !event.target.classList.contains("cell")) return;
+      const key = event.key.toUpperCase();
+      if (alphabet.includes(key)) guessLetter(key);
+      if (event.key === "Backspace" || event.key === "Delete") eraseActive();
+      if (event.key === "Tab") {
+        const letters = [...new Set(getLetters())];
+        if (letters.length) {
+          const currentIndex = Math.max(0, letters.indexOf(state.activeCipher));
+          state.activeCipher = letters[(currentIndex + 1) % letters.length];
+          render();
+        }
+        event.preventDefault();
+      }
+    });
+    populateCases();
+    renderStatus();
+  </script>
+</body>
+</html>

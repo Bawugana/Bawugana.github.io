@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Snack Comet Chaos</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f8fbff;
+      --muted: #a9b7c9;
+      --panel: rgba(9, 13, 24, 0.84);
+      --line: rgba(255, 255, 255, 0.18);
+      --lime: #7cf77a;
+      --cyan: #69d8ff;
+      --pink: #ff69a8;
+      --gold: #ffd868;
+      --red: #ff5e63;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #080a12;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: none;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(105, 216, 255, 0.17), transparent 26%),
+        radial-gradient(circle at 86% 22%, rgba(255, 105, 168, 0.13), transparent 24%),
+        radial-gradient(circle at 50% 92%, rgba(124, 247, 122, 0.12), transparent 30%),
+        #080a12;
+    }
+
+    .hud {
+      position: fixed;
+      inset: 12px 12px auto 12px;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(80px, 1fr));
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .pill,
+    .meter,
+    .panel,
+    .upgrade {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: inset 0 1px rgba(255,255,255,0.08), 0 14px 34px rgba(0,0,0,0.28);
+    }
+
+    .pill {
+      min-height: 40px;
+      padding: 8px 10px;
+    }
+
+    .pill span,
+    .upgrade span,
+    .meter span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .pill strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .meter {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 3;
+      width: min(280px, calc(100vw - 24px));
+      padding: 10px;
+      pointer-events: none;
+    }
+
+    .meter .bar {
+      height: 10px;
+      margin-top: 7px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.12);
+    }
+
+    .meter .fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--lime), var(--gold), var(--pink));
+      border-radius: inherit;
+      transition: width 90ms linear;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(3, 5, 12, 0.66);
+      backdrop-filter: blur(5px);
+    }
+
+    .panel {
+      width: min(680px, 100%);
+      padding: 22px;
+      text-align: center;
+      background: rgba(10, 15, 28, 0.94);
+    }
+
+    .panel h1 {
+      margin: 0 0 8px;
+      font-size: clamp(36px, 8vw, 72px);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .panel p {
+      margin: 8px auto;
+      max-width: 560px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .button-row,
+    .upgrades {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .button-row {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    button {
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.09);
+      color: var(--ink);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--lime);
+      color: #061207;
+      border-color: rgba(124, 247, 122, 0.85);
+    }
+
+    button.active {
+      background: var(--cyan);
+      color: #061017;
+      border-color: rgba(105, 216, 255, 0.85);
+    }
+
+    .upgrades {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .upgrade {
+      min-height: 114px;
+      padding: 12px;
+      text-align: left;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .upgrade strong {
+      display: block;
+      margin: 6px 0;
+      font-size: 18px;
+    }
+
+    .upgrade p {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .hud {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .pill strong {
+        font-size: 17px;
+      }
+
+      .button-row,
+      .upgrades {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="hud">
+    <div class="pill"><span>Score</span><strong id="score">0</strong></div>
+    <div class="pill"><span>Wave</span><strong id="wave">1</strong></div>
+    <div class="pill"><span>Lives</span><strong id="lives">3</strong></div>
+    <div class="pill"><span>Combo</span><strong id="combo">x1</strong></div>
+    <div class="pill"><span>Snacks</span><strong id="snacks">0/12</strong></div>
+    <div class="pill"><span>Best</span><strong id="best">0</strong></div>
+  </div>
+
+  <div class="meter">
+    <span id="dashLabel">Dash ready</span>
+    <div class="bar"><div class="fill" id="dashFill"></div></div>
+  </div>
+
+  <div class="overlay" id="startOverlay">
+    <div class="panel">
+      <h1>Snack Comet Chaos</h1>
+      <p>Grab snacks, dodge comets, chain combos, and become an unstoppable little space cart. Move with WASD or arrows. Aim with the mouse. Dash with Space.</p>
+      <div class="button-row">
+        <button class="active" data-mode="normal">Normal</button>
+        <button data-mode="spicy">Spicy</button>
+        <button data-mode="chaos">Chaos</button>
+      </div>
+      <button class="primary" id="startButton">Start Run</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="upgradeOverlay">
+    <div class="panel">
+      <h1>Pick An Upgrade</h1>
+      <p>Wave cleared. Choose one upgrade, then the chaos gets faster.</p>
+      <div class="upgrades" id="upgradeGrid"></div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const ui = {
+      score: document.getElementById('score'),
+      wave: document.getElementById('wave'),
+      lives: document.getElementById('lives'),
+      combo: document.getElementById('combo'),
+      snacks: document.getElementById('snacks'),
+      best: document.getElementById('best'),
+      dashFill: document.getElementById('dashFill'),
+      dashLabel: document.getElementById('dashLabel'),
+      startOverlay: document.getElementById('startOverlay'),
+      upgradeOverlay: document.getElementById('upgradeOverlay'),
+      upgradeGrid: document.getElementById('upgradeGrid'),
+      startButton: document.getElementById('startButton')
+    };
+
+    const keys = new Set();
+    const pointer = { x: innerWidth / 2, y: innerHeight / 2 };
+    let dpr = 1;
+    let last = performance.now();
+    let mode = 'normal';
+    let running = false;
+    let pausedForUpgrade = false;
+    let best = Number(localStorage.getItem('snackCometBest') || 0);
+
+    const game = {
+      score: 0,
+      wave: 1,
+      lives: 3,
+      combo: 1,
+      comboTimer: 0,
+      snacksNeeded: 12,
+      snacksTaken: 0,
+      shake: 0,
+      time: 0,
+      spawn: 0,
+      snackSpawn: 0,
+      particles: [],
+      comets: [],
+      snacks: [],
+      floatText: [],
+      player: {
+        x: innerWidth / 2,
+        y: innerHeight / 2,
+        vx: 0,
+        vy: 0,
+        r: 18,
+        speed: 520,
+        dash: 1,
+        dashCooldown: 1,
+        magnet: 95,
+        shield: 0,
+        invuln: 0,
+        snackValue: 120,
+        turn: 0
+      }
+    };
+
+    const difficulty = {
+      normal: { speed: 1, spawn: 1, lives: 3, name: 'Normal' },
+      spicy: { speed: 1.22, spawn: 1.18, lives: 3, name: 'Spicy' },
+      chaos: { speed: 1.46, spawn: 1.36, lives: 2, name: 'Chaos' }
+    };
+
+    const upgrades = [
+      { name: 'Bigger Magnet', tag: '+36 pickup range', apply: () => game.player.magnet += 36 },
+      { name: 'Turbo Wheels', tag: '+75 movement speed', apply: () => game.player.speed += 75 },
+      { name: 'Dash Battery', tag: 'dash recharges faster', apply: () => game.player.dashCooldown *= 0.82 },
+      { name: 'Snack Multiplier', tag: '+70 snack points', apply: () => game.player.snackValue += 70 },
+      { name: 'Emergency Shield', tag: '+1 free hit', apply: () => game.player.shield += 1 },
+      { name: 'Extra Life', tag: '+1 life', apply: () => game.lives += 1 },
+      { name: 'Tiny Cart', tag: 'smaller hitbox', apply: () => game.player.r = Math.max(10, game.player.r - 2) },
+      { name: 'Combo Glue', tag: 'combo lasts longer', apply: () => game.comboTimer += 2.5 },
+      { name: 'Snack Goal Cut', tag: 'next waves need fewer snacks', apply: () => game.snacksNeeded = Math.max(6, game.snacksNeeded - 2) }
+    ];
+
+    function resize() {
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(innerWidth * dpr);
+      canvas.height = Math.floor(innerHeight * dpr);
+      canvas.style.width = innerWidth + 'px';
+      canvas.style.height = innerHeight + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function dist(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function reset() {
+      const diff = difficulty[mode];
+      Object.assign(game, {
+        score: 0,
+        wave: 1,
+        lives: diff.lives,
+        combo: 1,
+        comboTimer: 0,
+        snacksNeeded: 12,
+        snacksTaken: 0,
+        shake: 0,
+        time: 0,
+        spawn: 0,
+        snackSpawn: 0,
+        particles: [],
+        comets: [],
+        snacks: [],
+        floatText: []
+      });
+      Object.assign(game.player, {
+        x: innerWidth / 2,
+        y: innerHeight / 2,
+        vx: 0,
+        vy: 0,
+        r: 18,
+        speed: 520,
+        dash: 1,
+        dashCooldown: 1,
+        magnet: 95,
+        shield: 0,
+        invuln: 0,
+        snackValue: 120,
+        turn: 0
+      });
+      running = true;
+      pausedForUpgrade = false;
+      ui.startOverlay.classList.add('hidden');
+      ui.upgradeOverlay.classList.add('hidden');
+      for (let i = 0; i < 8; i++) spawnSnack();
+      updateUi();
+    }
+
+    function spawnSnack() {
+      const kind = Math.random();
+      const snack = {
+        x: rand(40, innerWidth - 40),
+        y: rand(70, innerHeight - 70),
+        r: kind > 0.88 ? 16 : 12,
+        pulse: rand(0, Math.PI * 2),
+        type: kind > 0.88 ? 'star' : kind > 0.58 ? 'donut' : 'gem',
+        life: 16
+      };
+      game.snacks.push(snack);
+    }
+
+    function spawnComet() {
+      const edge = Math.floor(rand(0, 4));
+      const p = { x: 0, y: 0 };
+      if (edge === 0) { p.x = -40; p.y = rand(0, innerHeight); }
+      if (edge === 1) { p.x = innerWidth + 40; p.y = rand(0, innerHeight); }
+      if (edge === 2) { p.x = rand(0, innerWidth); p.y = -40; }
+      if (edge === 3) { p.x = rand(0, innerWidth); p.y = innerHeight + 40; }
+      const angle = Math.atan2(game.player.y - p.y, game.player.x - p.x) + rand(-0.7, 0.7);
+      const diff = difficulty[mode];
+      const speed = rand(130, 230) * diff.speed * (1 + game.wave * 0.075);
+      const big = Math.random() < 0.14 + game.wave * 0.008;
+      game.comets.push({
+        x: p.x,
+        y: p.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        r: big ? rand(22, 32) : rand(12, 20),
+        spin: rand(-4, 4),
+        a: rand(0, Math.PI * 2),
+        hot: Math.random() < 0.18
+      });
+    }
+
+    function burst(x, y, color, count = 18, power = 1) {
+      for (let i = 0; i < count; i++) {
+        const a = rand(0, Math.PI * 2);
+        const s = rand(60, 330) * power;
+        game.particles.push({
+          x, y,
+          vx: Math.cos(a) * s,
+          vy: Math.sin(a) * s,
+          life: rand(0.28, 0.8),
+          max: 0.8,
+          r: rand(2, 5),
+          color
+        });
+      }
+    }
+
+    function textPop(text, x, y, color = '#f8fbff') {
+      game.floatText.push({ text, x, y, vy: -36, life: 0.9, color });
+    }
+
+    function dash() {
+      const p = game.player;
+      if (p.dash < 1 || pausedForUpgrade || !running) return;
+      let dx = 0;
+      let dy = 0;
+      if (keys.has('a') || keys.has('arrowleft')) dx -= 1;
+      if (keys.has('d') || keys.has('arrowright')) dx += 1;
+      if (keys.has('w') || keys.has('arrowup')) dy -= 1;
+      if (keys.has('s') || keys.has('arrowdown')) dy += 1;
+      if (dx === 0 && dy === 0) {
+        dx = pointer.x - p.x;
+        dy = pointer.y - p.y;
+      }
+      const len = Math.hypot(dx, dy) || 1;
+      p.vx += dx / len * 920;
+      p.vy += dy / len * 920;
+      p.dash = 0;
+      p.invuln = Math.max(p.invuln, 0.32);
+      game.shake = 5;
+      burst(p.x, p.y, '#69d8ff', 22, 1.35);
+    }
+
+    function nextWave() {
+      running = false;
+      pausedForUpgrade = true;
+      game.wave += 1;
+      game.snacksTaken = 0;
+      game.snacksNeeded += 3;
+      showUpgrades();
+      updateUi();
+    }
+
+    function showUpgrades() {
+      ui.upgradeGrid.innerHTML = '';
+      const bag = [...upgrades].sort(() => Math.random() - 0.5).slice(0, 3);
+      for (const up of bag) {
+        const button = document.createElement('button');
+        button.className = 'upgrade';
+        button.innerHTML = `<span>Upgrade</span><strong>${up.name}</strong><p>${up.tag}</p>`;
+        button.addEventListener('click', () => {
+          up.apply();
+          running = true;
+          pausedForUpgrade = false;
+          ui.upgradeOverlay.classList.add('hidden');
+          for (let i = 0; i < 5; i++) spawnSnack();
+          burst(game.player.x, game.player.y, '#7cf77a', 30, 1.2);
+          updateUi();
+        });
+        ui.upgradeGrid.appendChild(button);
+      }
+      ui.upgradeOverlay.classList.remove('hidden');
+    }
+
+    function gameOver() {
+      running = false;
+      pausedForUpgrade = false;
+      best = Math.max(best, game.score);
+      localStorage.setItem('snackCometBest', String(best));
+      ui.startOverlay.querySelector('h1').textContent = 'Run Over';
+      ui.startOverlay.querySelector('p').textContent = `Score ${game.score}. Best ${best}. The snack cart demands another attempt.`;
+      ui.startButton.textContent = 'Restart Run';
+      ui.startOverlay.classList.remove('hidden');
+      updateUi();
+    }
+
+    function update(dt) {
+      if (!running) return;
+      game.time += dt;
+      const p = game.player;
+      let ax = 0;
+      let ay = 0;
+      if (keys.has('a') || keys.has('arrowleft')) ax -= 1;
+      if (keys.has('d') || keys.has('arrowright')) ax += 1;
+      if (keys.has('w') || keys.has('arrowup')) ay -= 1;
+      if (keys.has('s') || keys.has('arrowdown')) ay += 1;
+      const len = Math.hypot(ax, ay) || 1;
+      if (ax || ay) {
+        p.vx += ax / len * p.speed * dt * 4.8;
+        p.vy += ay / len * p.speed * dt * 4.8;
+      }
+      p.vx *= Math.pow(0.002, dt);
+      p.vy *= Math.pow(0.002, dt);
+      p.x = clamp(p.x + p.vx * dt, p.r + 6, innerWidth - p.r - 6);
+      p.y = clamp(p.y + p.vy * dt, p.r + 56, innerHeight - p.r - 6);
+      p.turn += (Math.atan2(pointer.y - p.y, pointer.x - p.x) - p.turn) * Math.min(1, dt * 12);
+      p.dash = Math.min(1, p.dash + dt / p.dashCooldown);
+      p.invuln = Math.max(0, p.invuln - dt);
+
+      game.comboTimer -= dt;
+      if (game.comboTimer <= 0) {
+        game.combo = 1;
+      }
+
+      const diff = difficulty[mode];
+      game.spawn -= dt;
+      const spawnTime = Math.max(0.12, 0.78 / diff.spawn - game.wave * 0.035);
+      if (game.spawn <= 0) {
+        spawnComet();
+        game.spawn = spawnTime;
+      }
+
+      game.snackSpawn -= dt;
+      if (game.snackSpawn <= 0 && game.snacks.length < 14) {
+        spawnSnack();
+        game.snackSpawn = rand(0.45, 0.95);
+      }
+
+      for (const snack of game.snacks) {
+        snack.pulse += dt * 5;
+        snack.life -= dt;
+        const d = dist(p, snack);
+        if (d < p.magnet) {
+          const pull = (1 - d / p.magnet) * 420 * dt;
+          snack.x += (p.x - snack.x) / Math.max(1, d) * pull;
+          snack.y += (p.y - snack.y) / Math.max(1, d) * pull;
+        }
+      }
+
+      for (let i = game.snacks.length - 1; i >= 0; i--) {
+        const snack = game.snacks[i];
+        if (dist(p, snack) < p.r + snack.r) {
+          game.snacks.splice(i, 1);
+          game.combo = Math.min(9, game.combo + 0.25);
+          game.comboTimer = 2.4;
+          const gain = Math.round(p.snackValue * game.combo);
+          game.score += gain;
+          game.snacksTaken += 1;
+          textPop('+' + gain, snack.x, snack.y, snack.type === 'star' ? '#ffd868' : '#7cf77a');
+          burst(snack.x, snack.y, snack.type === 'star' ? '#ffd868' : '#7cf77a', snack.type === 'star' ? 28 : 16);
+          if (snack.type === 'star') {
+            p.dash = 1;
+            game.score += 250;
+            textPop('DASH!', snack.x, snack.y - 22, '#69d8ff');
+          }
+          if (game.snacksTaken >= game.snacksNeeded) nextWave();
+        } else if (snack.life <= 0) {
+          snack.x = rand(40, innerWidth - 40);
+          snack.y = rand(70, innerHeight - 70);
+          snack.life = 16;
+        }
+      }
+
+      for (let i = game.comets.length - 1; i >= 0; i--) {
+        const c = game.comets[i];
+        c.x += c.vx * dt;
+        c.y += c.vy * dt;
+        c.a += c.spin * dt;
+        if (dist(p, c) < p.r + c.r && p.invuln <= 0) {
+          game.comets.splice(i, 1);
+          burst(c.x, c.y, '#ff5e63', 32, 1.5);
+          game.shake = 12;
+          if (p.shield > 0) {
+            p.shield -= 1;
+            p.invuln = 1.1;
+            textPop('SHIELD', p.x, p.y - 28, '#69d8ff');
+          } else {
+            game.lives -= 1;
+            game.combo = 1;
+            p.invuln = 1.25;
+            textPop('-1', p.x, p.y - 28, '#ff5e63');
+            if (game.lives <= 0) gameOver();
+          }
+        } else if (c.x < -100 || c.x > innerWidth + 100 || c.y < -100 || c.y > innerHeight + 100) {
+          game.comets.splice(i, 1);
+        }
+      }
+
+      for (let i = game.particles.length - 1; i >= 0; i--) {
+        const q = game.particles[i];
+        q.life -= dt;
+        q.x += q.vx * dt;
+        q.y += q.vy * dt;
+        q.vx *= Math.pow(0.05, dt);
+        q.vy *= Math.pow(0.05, dt);
+        if (q.life <= 0) game.particles.splice(i, 1);
+      }
+
+      for (let i = game.floatText.length - 1; i >= 0; i--) {
+        const t = game.floatText[i];
+        t.life -= dt;
+        t.y += t.vy * dt;
+        if (t.life <= 0) game.floatText.splice(i, 1);
+      }
+
+      game.shake = Math.max(0, game.shake - dt * 18);
+      updateUi();
+    }
+
+    function drawCart(p) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.turn);
+      if (p.invuln > 0 && Math.floor(game.time * 18) % 2 === 0) ctx.globalAlpha = 0.45;
+      ctx.shadowColor = '#69d8ff';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#69d8ff';
+      roundedRect(-20, -13, 40, 26, 8);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#101725';
+      roundedRect(-8, -8, 18, 16, 5);
+      ctx.fill();
+      ctx.fillStyle = '#ffd868';
+      ctx.beginPath();
+      ctx.moveTo(21, 0);
+      ctx.lineTo(8, -8);
+      ctx.lineTo(8, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ff69a8';
+      ctx.beginPath();
+      ctx.arc(-12, -13, 5, 0, Math.PI * 2);
+      ctx.arc(-12, 13, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      if (p.shield > 0) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(105, 216, 255, 0.75)';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#69d8ff';
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r + 13 + Math.sin(game.time * 6) * 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    function roundedRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function drawSnack(s) {
+      const bob = Math.sin(s.pulse) * 3;
+      ctx.save();
+      ctx.translate(s.x, s.y + bob);
+      ctx.rotate(s.pulse * 0.25);
+      ctx.shadowBlur = 18;
+      if (s.type === 'donut') {
+        ctx.shadowColor = '#ff69a8';
+        ctx.fillStyle = '#ff69a8';
+        ctx.beginPath();
+        ctx.arc(0, 0, s.r, 0, Math.PI * 2);
+        ctx.arc(0, 0, s.r * 0.45, 0, Math.PI * 2, true);
+        ctx.fill('evenodd');
+      } else if (s.type === 'star') {
+        ctx.shadowColor = '#ffd868';
+        ctx.fillStyle = '#ffd868';
+        star(0, 0, s.r, s.r * 0.45, 5);
+        ctx.fill();
+      } else {
+        ctx.shadowColor = '#7cf77a';
+        ctx.fillStyle = '#7cf77a';
+        ctx.beginPath();
+        ctx.moveTo(0, -s.r);
+        ctx.lineTo(s.r, 0);
+        ctx.lineTo(0, s.r);
+        ctx.lineTo(-s.r, 0);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function star(x, y, outer, inner, points) {
+      ctx.beginPath();
+      for (let i = 0; i < points * 2; i++) {
+        const r = i % 2 ? inner : outer;
+        const a = -Math.PI / 2 + i / (points * 2) * Math.PI * 2;
+        const px = x + Math.cos(a) * r;
+        const py = y + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    }
+
+    function drawComet(c) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.a);
+      ctx.shadowColor = c.hot ? '#ff5e63' : '#ffd868';
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = c.hot ? '#ff5e63' : '#b9875a';
+      ctx.beginPath();
+      for (let i = 0; i < 9; i++) {
+        const a = i / 9 * Math.PI * 2;
+        const r = c.r * randSeed(c.x + i * 31, 0.72, 1.12);
+        const x = Math.cos(a) * r;
+        const y = Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.24)';
+      ctx.beginPath();
+      ctx.arc(-c.r * 0.25, -c.r * 0.2, c.r * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function randSeed(seed, min, max) {
+      const v = Math.sin(seed * 12.9898) * 43758.5453;
+      return min + (v - Math.floor(v)) * (max - min);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      ctx.save();
+      if (game.shake > 0) {
+        ctx.translate(rand(-game.shake, game.shake), rand(-game.shake, game.shake));
+      }
+      drawGrid();
+      for (const s of game.snacks) drawSnack(s);
+      for (const c of game.comets) drawComet(c);
+      for (const q of game.particles) {
+        ctx.globalAlpha = Math.max(0, q.life / q.max);
+        ctx.fillStyle = q.color;
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      drawCart(game.player);
+      for (const t of game.floatText) {
+        ctx.globalAlpha = Math.max(0, t.life);
+        ctx.fillStyle = t.color;
+        ctx.font = '900 18px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(t.text, t.x, t.y);
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    function drawGrid() {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,0.055)';
+      ctx.lineWidth = 1;
+      const step = 46;
+      const ox = (game.time * 18) % step;
+      for (let x = -step + ox; x < innerWidth + step; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, innerHeight);
+        ctx.stroke();
+      }
+      for (let y = -step; y < innerHeight + step; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(innerWidth, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function updateUi() {
+      ui.score.textContent = game.score;
+      ui.wave.textContent = game.wave;
+      ui.lives.textContent = game.lives + (game.player.shield ? `+${game.player.shield}` : '');
+      ui.combo.textContent = 'x' + game.combo.toFixed(game.combo % 1 ? 1 : 0);
+      ui.snacks.textContent = `${game.snacksTaken}/${game.snacksNeeded}`;
+      ui.best.textContent = best;
+      ui.dashFill.style.width = Math.round(game.player.dash * 100) + '%';
+      ui.dashLabel.textContent = game.player.dash >= 1 ? 'Dash ready' : 'Dash charging';
+    }
+
+    function loop(now) {
+      const dt = Math.min(0.033, (now - last) / 1000 || 0);
+      last = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('keydown', event => {
+      keys.add(event.key.toLowerCase());
+      if (event.code === 'Space') {
+        event.preventDefault();
+        dash();
+      }
+      if (event.key.toLowerCase() === 'r' && !running) reset();
+    });
+    window.addEventListener('keyup', event => keys.delete(event.key.toLowerCase()));
+    window.addEventListener('pointermove', event => {
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+    });
+    window.addEventListener('pointerdown', dash);
+
+    document.querySelectorAll('[data-mode]').forEach(button => {
+      button.addEventListener('click', () => {
+        mode = button.dataset.mode;
+        document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b === button));
+      });
+    });
+    ui.startButton.addEventListener('click', reset);
+
+    resize();
+    updateUi();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

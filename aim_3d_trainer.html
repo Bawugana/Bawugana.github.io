@@ -1,0 +1,1847 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D Aim Trainer</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #090b0f;
+      color: #eef2f8;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      background: #090b0f;
+    }
+
+    .hud {
+      position: fixed;
+      inset: 12px auto auto 12px;
+      display: grid;
+      gap: 6px;
+      font-size: 14px;
+      line-height: 1.25;
+      text-shadow: 0 1px 2px #000;
+      pointer-events: none;
+    }
+
+    .hud strong {
+      color: #77ffb0;
+    }
+
+    .banner {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(6, 8, 12, 0.78);
+      text-align: center;
+      padding: 24px;
+    }
+
+    .panel {
+      max-width: 620px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(10, 14, 20, 0.9);
+      padding: 22px;
+      border-radius: 8px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .panel h1 {
+      margin: 0 0 10px;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    .panel p {
+      margin: 8px 0;
+      color: #d5dce8;
+    }
+
+    .panel button {
+      margin-top: 14px;
+      border: 0;
+      border-radius: 6px;
+      background: #30d779;
+      color: #06100a;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+
+    .danger {
+      color: #ff5c7a;
+    }
+
+    .mobile-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 5;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 6px;
+      background: rgba(12, 18, 28, 0.84);
+      color: #eef2f8;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 11px;
+      cursor: pointer;
+    }
+
+    .settings-toggle {
+      position: fixed;
+      top: 54px;
+      right: 12px;
+      z-index: 6;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 6px;
+      background: rgba(12, 18, 28, 0.86);
+      color: #eef2f8;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 11px;
+      cursor: pointer;
+    }
+
+    .settings-toggle.active {
+      background: #ffdf5e;
+      color: #11151d;
+      border-color: #fff1a0;
+    }
+
+    .settings-panel {
+      position: fixed;
+      top: 96px;
+      right: 12px;
+      z-index: 7;
+      display: none;
+      width: min(340px, calc(100vw - 24px));
+      max-height: calc(100vh - 112px);
+      overflow: auto;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      background: rgba(10, 15, 23, 0.94);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.48);
+      padding: 14px;
+    }
+
+    .settings-panel.active {
+      display: grid;
+      gap: 12px;
+    }
+
+    .settings-panel h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .settings-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 7px 10px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .settings-row span {
+      color: #ffdf5e;
+      font-weight: 800;
+    }
+
+    .settings-row input {
+      grid-column: 1 / -1;
+      width: 100%;
+      accent-color: #30d779;
+    }
+
+    .settings-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .settings-actions button {
+      flex: 1;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #eef2f8;
+      font-weight: 800;
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .mobile-toggle.active {
+      background: #30d779;
+      color: #06100a;
+      border-color: #9cffc4;
+    }
+
+    .mobile-controls {
+      position: fixed;
+      inset: 0;
+      z-index: 4;
+      display: none;
+      pointer-events: none;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .mobile-controls.active {
+      display: block;
+    }
+
+    .stick {
+      position: absolute;
+      left: 24px;
+      bottom: 28px;
+      width: 128px;
+      height: 128px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.38);
+      background: rgba(8, 12, 18, 0.38);
+      pointer-events: auto;
+    }
+
+    .nub {
+      position: absolute;
+      left: 44px;
+      top: 44px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(48, 215, 121, 0.88);
+      box-shadow: 0 0 18px rgba(48, 215, 121, 0.5);
+    }
+
+    .look-pad {
+      position: absolute;
+      right: 0;
+      top: 96px;
+      bottom: 96px;
+      width: 55vw;
+      pointer-events: auto;
+    }
+
+    .mobile-actions {
+      position: absolute;
+      right: 18px;
+      bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(5, 58px);
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .mobile-actions button,
+    .mobile-weapons button,
+    .mobile-levels button {
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 50%;
+      width: 58px;
+      height: 58px;
+      background: rgba(13, 19, 29, 0.78);
+      color: #eef2f8;
+      font-size: 13px;
+      font-weight: 800;
+      touch-action: none;
+    }
+
+    .mobile-actions .fire {
+      width: 72px;
+      height: 72px;
+      background: rgba(255, 92, 122, 0.9);
+    }
+
+    .mobile-weapons {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .mobile-weapons button {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+    }
+
+    .mobile-weapons button.active {
+      background: #ffdf5e;
+      color: #11151d;
+    }
+
+    .mobile-levels {
+      position: absolute;
+      right: 18px;
+      top: 70px;
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .mobile-levels button {
+      width: 46px;
+      height: 46px;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 760px) {
+      .hud {
+        max-width: calc(100vw - 116px);
+        font-size: 12px;
+      }
+
+      .panel {
+        max-width: 92vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div class="hud" id="hud"></div>
+  <button class="mobile-toggle" id="mobileToggle">Mobile: Off</button>
+  <button class="settings-toggle" id="settingsToggle">Settings</button>
+  <div class="settings-panel" id="settingsPanel"></div>
+  <div class="mobile-controls" id="mobileControls">
+    <div class="mobile-levels">
+      <button id="levelDown">LV-</button>
+      <button id="levelUp">LV+</button>
+      <button id="physicsButton">PHYS</button>
+      <button id="rpgButton">RPG</button>
+      <button id="visionButton">SEE</button>
+    </div>
+    <div class="look-pad" id="lookPad"></div>
+    <div class="stick" id="moveStick"><div class="nub" id="moveNub"></div></div>
+    <div class="mobile-weapons" id="mobileWeapons"></div>
+    <div class="mobile-actions">
+      <button id="jumpButton">JUMP</button>
+      <button id="crouchButton">CRCH</button>
+      <button id="reloadButton">LOAD</button>
+      <button id="aimButton">ADS</button>
+      <button class="fire" id="fireButton">FIRE</button>
+    </div>
+  </div>
+  <div class="banner" id="banner">
+    <div class="panel">
+      <h1>3D Aim Trainer</h1>
+      <p>WASD to move. Space to jump. Mouse to look. Hold click to shoot. Right-click or Q to aim.</p>
+      <p>The NPC shoots back with perfect accuracy when it can see you.</p>
+      <p>Use weapons 1-5, R reload, T reset, [ / ] NPC level, P physics, G RPG arc/straight, V enemy vision, O settings.</p>
+      <p>Arena physics stays accurate while moving. Valorant/Counter-Strike physics punish moving and airborne shots. Supply drops heal and refill ammo.</p>
+      <button id="start">Start</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const hud = document.getElementById("hud");
+    const banner = document.getElementById("banner");
+    const startButton = document.getElementById("start");
+    const mobileToggle = document.getElementById("mobileToggle");
+    const settingsToggle = document.getElementById("settingsToggle");
+    const settingsPanel = document.getElementById("settingsPanel");
+    const mobileControls = document.getElementById("mobileControls");
+    const moveStick = document.getElementById("moveStick");
+    const moveNub = document.getElementById("moveNub");
+    const lookPad = document.getElementById("lookPad");
+    const fireButton = document.getElementById("fireButton");
+    const aimButton = document.getElementById("aimButton");
+    const jumpButton = document.getElementById("jumpButton");
+    const crouchButton = document.getElementById("crouchButton");
+    const reloadButton = document.getElementById("reloadButton");
+    const levelDown = document.getElementById("levelDown");
+    const levelUp = document.getElementById("levelUp");
+    const physicsButton = document.getElementById("physicsButton");
+    const rpgButton = document.getElementById("rpgButton");
+    const visionButton = document.getElementById("visionButton");
+    const mobileWeapons = document.getElementById("mobileWeapons");
+
+    const state = {
+      player: { x: 0, y: 1.6, z: -8, yaw: 0, pitch: 0, speed: 7.2, vy: 0, ground: 0, grounded: true, hp: 100, maxHp: 100, shield: 50, maxShield: 50, shieldDelay: 0, slideX: 0, slideZ: 0, slideTime: 0 },
+      npc: { x: 0, z: 8, hp: 100, maxHp: 100, vx: 1.6, vz: 0.8, fireCooldown: 0.5 },
+      keys: new Set(),
+      bullets: [],
+      sparks: [],
+      damageTexts: [],
+      pickups: [],
+      ammo: [],
+      mouseDown: false,
+      aiming: false,
+      mobileMode: false,
+      virtualMove: { x: 0, z: 0 },
+      crouching: false,
+      fireCooldown: 0,
+      weaponIndex: 0,
+      kills: 0,
+      playerScore: 0,
+      npcScore: 0,
+      targetScore: 5,
+      npcLevel: 1,
+      physicsIndex: 0,
+      rpgArc: true,
+      seeEnemyThroughWalls: false,
+      settingsOpen: false,
+      settings: {
+        playerHp: 100,
+        playerShield: 50,
+        npcHp: 100,
+        npcDamage: 2,
+        npcSpeed: 1,
+        playerSpeed: 1,
+        mouseSensitivity: 1,
+        mobileSensitivity: 1
+      },
+      hitMarker: 0,
+      shots: 0,
+      hits: 0,
+      deaths: 0,
+      lastTime: performance.now(),
+      moving: false,
+      alive: true,
+      warning: "",
+      roundMessage: "First to 5",
+      started: false
+    };
+
+    const walls = [
+      { x: -5, z: 0, w: 1.8, d: 5.5, h: 3.0 },
+      { x: 5.2, z: 1.8, w: 2.0, d: 6.0, h: 3.2 },
+      { x: 0, z: 4.2, w: 5.2, d: 1.4, h: 2.7 },
+      { x: -2.8, z: 10, w: 4.0, d: 1.4, h: 2.9 }
+    ];
+
+    const ramps = [
+      { x: -7.2, z: 0, w: 2.6, d: 5.5, h: 3.0, dir: "x+" },
+      { x: 2.7, z: 4.2, w: 4.4, d: 1.4, h: 2.7, dir: "x-" },
+      { x: -2.8, z: 7.3, w: 4.0, d: 4.0, h: 2.9, dir: "z+" }
+    ];
+
+    const weaponLoadouts = [
+      [
+        { name: "Pulse Pistol", delay: 0.18, damage: 0.95, speed: 32, pellets: 1, spread: 0.001, life: 0.48, mag: 14, reserve: 84, reload: 0.95 },
+        { name: "Beam SMG", delay: 0.052, damage: 0.36, speed: 36, pellets: 1, spread: 0.01, life: 0.42, mag: 36, reserve: 180, reload: 1.35 },
+        { name: "Burst Shotgun", delay: 0.54, damage: 0.3, speed: 30, pellets: 8, spread: 0.046, life: 0.34, mag: 7, reserve: 42, reload: 1.5 },
+        { name: "Sniper", delay: 0.9, damage: 1.55, speed: 48, pellets: 1, spread: 0.0, life: 0.62, mag: 5, reserve: 25, reload: 1.8 },
+        { name: "RPG", delay: 1.15, damage: 1.0, speed: 18, pellets: 1, spread: 0.002, life: 2.2, explosive: true, radius: 2.7, mag: 1, reserve: 6, reload: 2.1 }
+      ],
+      [
+        { name: "Classic", delay: 0.24, damage: 1.0, speed: 33, pellets: 1, spread: 0.004, moveSpread: 0.032, life: 0.48, mag: 12, reserve: 48, reload: 1.15 },
+        { name: "Spectre", delay: 0.07, damage: 0.42, speed: 35, pellets: 1, spread: 0.018, moveSpread: 0.048, life: 0.42, mag: 30, reserve: 120, reload: 1.7 },
+        { name: "Judge", delay: 0.42, damage: 0.22, speed: 28, pellets: 9, spread: 0.065, moveSpread: 0.02, life: 0.32, mag: 7, reserve: 28, reload: 1.9 },
+        { name: "Operator", delay: 1.05, damage: 1.55, speed: 50, pellets: 1, spread: 0.001, moveSpread: 0.08, life: 0.66, mag: 5, reserve: 20, reload: 2.1 },
+        { name: "RPG", delay: 1.25, damage: 1.0, speed: 16, pellets: 1, spread: 0.003, moveSpread: 0.025, life: 2.2, explosive: true, radius: 2.6, mag: 1, reserve: 4, reload: 2.3 }
+      ],
+      [
+        { name: "USP", delay: 0.21, damage: 1.0, speed: 34, pellets: 1, spread: 0.004, moveSpread: 0.035, life: 0.5, mag: 12, reserve: 48, reload: 1.25 },
+        { name: "MP9", delay: 0.058, damage: 0.38, speed: 36, pellets: 1, spread: 0.017, moveSpread: 0.046, life: 0.42, mag: 30, reserve: 120, reload: 1.6 },
+        { name: "Nova", delay: 0.82, damage: 0.45, speed: 28, pellets: 6, spread: 0.056, moveSpread: 0.025, life: 0.34, mag: 8, reserve: 32, reload: 2.0 },
+        { name: "AWP", delay: 1.2, damage: 1.55, speed: 52, pellets: 1, spread: 0.0, moveSpread: 0.095, life: 0.68, mag: 5, reserve: 20, reload: 2.25 },
+        { name: "RPG", delay: 1.3, damage: 1.0, speed: 20, pellets: 1, spread: 0.003, moveSpread: 0.03, life: 2.1, explosive: true, radius: 2.5, mag: 1, reserve: 4, reload: 2.4 }
+      ]
+    ];
+
+    let weapons = weaponLoadouts[0];
+
+    const npcLevels = [
+      { name: "Rookie", miss: 0.78, damage: 1, delay: 1.05, speed: 2.1, strafe: 0.7 },
+      { name: "Normal", miss: 0.66, damage: 2, delay: 0.77, speed: 3.1, strafe: 1.8 },
+      { name: "Sweat", miss: 0.48, damage: 3, delay: 0.58, speed: 3.8, strafe: 2.5 },
+      { name: "Ranked", miss: 0.34, damage: 4, delay: 0.46, speed: 4.4, strafe: 3.2 }
+    ];
+
+    const physicsModes = [
+      { name: "Overwatch/Rivals", speed: 7.8, gravity: 16.5, jump: 7.9, airControl: 0.78, rpgGravity: 8.5, rpgSpeed: 18 },
+      { name: "Valorant", speed: 6.0, gravity: 23.5, jump: 6.4, airControl: 0.32, rpgGravity: 11.5, rpgSpeed: 16 },
+      { name: "Counter-Strike", speed: 6.9, gravity: 19.5, jump: 7.2, airControl: 0.58, rpgGravity: 9.8, rpgSpeed: 20 }
+    ];
+
+    const settingsSpecs = [
+      { key: "playerHp", label: "Your HP", min: 25, max: 300, step: 5, unit: "" },
+      { key: "playerShield", label: "Your shield", min: 0, max: 200, step: 5, unit: "" },
+      { key: "npcHp", label: "NPC HP", min: 25, max: 300, step: 5, unit: "" },
+      { key: "npcDamage", label: "NPC damage", min: 0, max: 20, step: 1, unit: "" },
+      { key: "npcSpeed", label: "NPC speed", min: 0.25, max: 2.5, step: 0.05, unit: "x" },
+      { key: "playerSpeed", label: "Your speed", min: 0.35, max: 2.5, step: 0.05, unit: "x" },
+      { key: "mouseSensitivity", label: "Mouse sensitivity", min: 0.2, max: 3, step: 0.05, unit: "x" },
+      { key: "mobileSensitivity", label: "Mobile sensitivity", min: 0.2, max: 3, step: 0.05, unit: "x" }
+    ];
+
+    const defaultSettings = { ...state.settings };
+
+    function initAmmo() {
+      state.ammo = weapons.map((weapon) => ({
+        mag: weapon.mag,
+        reserve: weapon.reserve,
+        reloading: false,
+        reloadTimer: 0
+      }));
+    }
+
+    initAmmo();
+
+    function settingText(spec) {
+      const value = state.settings[spec.key];
+      return Number.isInteger(value) ? `${value}${spec.unit}` : `${value.toFixed(2)}${spec.unit}`;
+    }
+
+    function applySettings() {
+      const oldPlayerHp = state.player.maxHp || state.settings.playerHp;
+      const oldPlayerShield = state.player.maxShield || state.settings.playerShield;
+      const oldNpcHp = state.npc.maxHp || state.settings.npcHp;
+      state.player.maxHp = state.settings.playerHp;
+      state.player.maxShield = state.settings.playerShield;
+      state.npc.maxHp = state.settings.npcHp;
+      state.player.hp = clamp(state.player.hp + (state.player.maxHp - oldPlayerHp), 1, state.player.maxHp);
+      state.player.shield = clamp(state.player.shield + (state.player.maxShield - oldPlayerShield), 0, state.player.maxShield);
+      state.npc.hp = clamp(state.npc.hp + (state.npc.maxHp - oldNpcHp), 1, state.npc.maxHp);
+    }
+
+    function buildSettingsPanel() {
+      settingsPanel.innerHTML = "<h2>Custom Training</h2>";
+      for (const spec of settingsSpecs) {
+        const row = document.createElement("label");
+        row.className = "settings-row";
+        row.innerHTML = `
+          <strong>${spec.label}</strong>
+          <span id="settingValue-${spec.key}">${settingText(spec)}</span>
+          <input id="setting-${spec.key}" type="range" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${state.settings[spec.key]}">
+        `;
+        settingsPanel.appendChild(row);
+        const input = row.querySelector("input");
+        const value = row.querySelector("span");
+        input.addEventListener("input", () => {
+          state.settings[spec.key] = Number(input.value);
+          value.textContent = settingText(spec);
+          applySettings();
+        });
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "settings-actions";
+      actions.innerHTML = `
+        <button id="resetSettings" type="button">Reset</button>
+        <button id="closeSettings" type="button">Close</button>
+      `;
+      settingsPanel.appendChild(actions);
+      document.getElementById("resetSettings").addEventListener("click", resetSettings);
+      document.getElementById("closeSettings").addEventListener("click", () => setSettingsOpen(false));
+    }
+
+    function refreshSettingsPanel() {
+      for (const spec of settingsSpecs) {
+        const input = document.getElementById(`setting-${spec.key}`);
+        const value = document.getElementById(`settingValue-${spec.key}`);
+        if (!input || !value) continue;
+        input.value = state.settings[spec.key];
+        value.textContent = settingText(spec);
+      }
+    }
+
+    function resetSettings() {
+      state.settings = { ...defaultSettings };
+      refreshSettingsPanel();
+      applySettings();
+      state.roundMessage = "Settings reset";
+    }
+
+    function setSettingsOpen(open) {
+      state.settingsOpen = open;
+      settingsPanel.classList.toggle("active", open);
+      settingsToggle.classList.toggle("active", open);
+    }
+
+    buildSettingsPanel();
+    applySettings();
+
+    function resize() {
+      canvas.width = Math.floor(innerWidth * devicePixelRatio);
+      canvas.height = Math.floor(innerHeight * devicePixelRatio);
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    }
+
+    addEventListener("resize", resize);
+    resize();
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function forward() {
+      return { x: Math.sin(state.player.yaw), z: Math.cos(state.player.yaw) };
+    }
+
+    function right() {
+      return { x: Math.cos(state.player.yaw), z: -Math.sin(state.player.yaw) };
+    }
+
+    function project(x, y, z) {
+      const p = state.player;
+      const dx = x - p.x;
+      const dy = y - p.y;
+      const dz = z - p.z;
+      const sy = Math.sin(p.yaw);
+      const cy = Math.cos(p.yaw);
+      const rx = dx * cy - dz * sy;
+      const rz = dx * sy + dz * cy;
+      const cp = Math.cos(p.pitch);
+      const sp = Math.sin(p.pitch);
+      const ry = dy * cp - rz * sp;
+      const rz2 = dy * sp + rz * cp;
+      if (rz2 <= 0.05) return null;
+      const scoped = state.aiming && currentWeapon().name === "Sniper";
+      const f = Math.min(innerWidth, innerHeight) * (scoped ? 1.78 : state.aiming ? 1.18 : 0.82);
+      return {
+        x: innerWidth / 2 + (rx / rz2) * f,
+        y: innerHeight / 2 - (ry / rz2) * f,
+        z: rz2,
+        s: f / rz2
+      };
+    }
+
+    function shade(color, amount) {
+      const n = parseInt(color.slice(1), 16);
+      const r = clamp(((n >> 16) & 255) + amount, 0, 255);
+      const g = clamp(((n >> 8) & 255) + amount, 0, 255);
+      const b = clamp((n & 255) + amount, 0, 255);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function face(points, color, stroke) {
+      const projected = points.map((p) => project(p[0], p[1], p[2]));
+      if (projected.some((p) => !p)) return;
+      ctx.beginPath();
+      ctx.moveTo(projected[0].x, projected[0].y);
+      for (let i = 1; i < projected.length; i++) ctx.lineTo(projected[i].x, projected[i].y);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    function boxFaces(box, color) {
+      const x1 = box.x - box.w / 2;
+      const x2 = box.x + box.w / 2;
+      const z1 = box.z - box.d / 2;
+      const z2 = box.z + box.d / 2;
+      const y0 = 0;
+      const y1 = box.h;
+      const faces = [
+        [[x1, y0, z1], [x2, y0, z1], [x2, y1, z1], [x1, y1, z1], shade(color, -12)],
+        [[x2, y0, z1], [x2, y0, z2], [x2, y1, z2], [x2, y1, z1], shade(color, 8)],
+        [[x2, y0, z2], [x1, y0, z2], [x1, y1, z2], [x2, y1, z2], shade(color, -22)],
+        [[x1, y0, z2], [x1, y0, z1], [x1, y1, z1], [x1, y1, z2], shade(color, -4)],
+        [[x1, y1, z1], [x2, y1, z1], [x2, y1, z2], [x1, y1, z2], shade(color, 20)]
+      ];
+      return faces.map((f) => ({
+        depth: f.slice(0, 4).reduce((sum, p) => sum + distance2(p[0], p[2]), 0) / 4,
+        draw: () => face(f.slice(0, 4), f[4], "rgba(255,255,255,0.12)")
+      }));
+    }
+
+    function rampFaces(ramp, color) {
+      const x1 = ramp.x - ramp.w / 2;
+      const x2 = ramp.x + ramp.w / 2;
+      const z1 = ramp.z - ramp.d / 2;
+      const z2 = ramp.z + ramp.d / 2;
+      let lowA, lowB, highA, highB;
+      if (ramp.dir === "x+") {
+        lowA = [x1, 0, z1]; lowB = [x1, 0, z2]; highA = [x2, ramp.h, z1]; highB = [x2, ramp.h, z2];
+      } else if (ramp.dir === "x-") {
+        lowA = [x2, 0, z1]; lowB = [x2, 0, z2]; highA = [x1, ramp.h, z1]; highB = [x1, ramp.h, z2];
+      } else {
+        lowA = [x1, 0, z1]; lowB = [x2, 0, z1]; highA = [x1, ramp.h, z2]; highB = [x2, ramp.h, z2];
+      }
+      const faces = [
+        [lowA, lowB, highB, highA, shade(color, 24)],
+        [[x1, 0, z1], [x2, 0, z1], [x2, 0.02, z1], [x1, 0.02, z1], shade(color, -12)],
+        [[x1, 0, z2], [x2, 0, z2], [x2, ramp.h, z2], [x1, ramp.h, z2], shade(color, -20)]
+      ];
+      return faces.map((f) => ({
+        depth: f.slice(0, 4).reduce((sum, p) => sum + distance2(p[0], p[2]), 0) / 4,
+        draw: () => face(f.slice(0, 4), f[4], "rgba(255,255,255,0.14)")
+      }));
+    }
+
+    function distance2(x, z) {
+      const dx = x - state.player.x;
+      const dz = z - state.player.z;
+      return dx * dx + dz * dz;
+    }
+
+    function blockedLine(ax, az, bx, bz) {
+      for (const wall of walls) {
+        const x1 = wall.x - wall.w / 2;
+        const x2 = wall.x + wall.w / 2;
+        const z1 = wall.z - wall.d / 2;
+        const z2 = wall.z + wall.d / 2;
+        const steps = 42;
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const x = ax + (bx - ax) * t;
+          const z = az + (bz - az) * t;
+          if (x >= x1 && x <= x2 && z >= z1 && z <= z2) return true;
+        }
+      }
+      return false;
+    }
+
+    function heightOnRamp(ramp, x, z) {
+      const x1 = ramp.x - ramp.w / 2;
+      const x2 = ramp.x + ramp.w / 2;
+      const z1 = ramp.z - ramp.d / 2;
+      const z2 = ramp.z + ramp.d / 2;
+      if (x < x1 || x > x2 || z < z1 || z > z2) return null;
+      if (ramp.dir === "x+") return ((x - x1) / ramp.w) * ramp.h;
+      if (ramp.dir === "x-") return ((x2 - x) / ramp.w) * ramp.h;
+      return ((z - z1) / ramp.d) * ramp.h;
+    }
+
+    function groundHeightAt(x, z) {
+      let height = 0;
+      for (const ramp of ramps) {
+        const h = heightOnRamp(ramp, x, z);
+        if (h !== null) height = Math.max(height, h);
+      }
+      for (const wall of walls) {
+        const onTop =
+          x > wall.x - wall.w / 2 - 0.2 &&
+          x < wall.x + wall.w / 2 + 0.2 &&
+          z > wall.z - wall.d / 2 - 0.2 &&
+          z < wall.z + wall.d / 2 + 0.2;
+        if (onTop) height = Math.max(height, wall.h);
+      }
+      return height;
+    }
+
+    function circle3d(x, y, z, radius, color, stroke) {
+      const p = project(x, y, z);
+      if (!p) return;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(2, radius * p.s), 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
+    function line3d(a, b, color, width) {
+      const p1 = project(a[0], a[1], a[2]);
+      const p2 = project(b[0], b[1], b[2]);
+      if (!p1 || !p2) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+
+    function npcParts() {
+      const n = state.npc;
+      return [
+        { name: "head", x: n.x, y: 1.92, z: n.z, r: 0.24, damage: 38, score: 150 },
+        { name: "body", x: n.x, y: 1.25, z: n.z, r: 0.36, damage: 24, score: 45 },
+        { name: "arm", x: n.x - 0.42, y: 1.22, z: n.z, r: 0.20, damage: 16, score: 25 },
+        { name: "arm", x: n.x + 0.42, y: 1.22, z: n.z, r: 0.20, damage: 16, score: 25 },
+        { name: "leg", x: n.x - 0.16, y: 0.58, z: n.z, r: 0.18, damage: 14, score: 20 },
+        { name: "leg", x: n.x + 0.16, y: 0.58, z: n.z, r: 0.18, damage: 14, score: 20 }
+      ];
+    }
+
+    function npcShotDamage() {
+      return state.settings.npcDamage;
+    }
+
+    function npcShotDelay() {
+      return npcLevels[state.npcLevel].delay;
+    }
+
+    function addDamageText(x, y, z, text, color) {
+      state.damageTexts.push({ x, y, z, text, color, life: 0.85 });
+    }
+
+    function damageNpc(amount, x, y, z, color = "#7cffae") {
+      state.hits++;
+      state.hitMarker = 0.16;
+      state.npc.hp -= amount;
+      addDamageText(x, y + 0.25, z, Math.round(amount), color);
+      state.sparks.push({ x, y, z, life: 1, color });
+      if (state.npc.hp <= 0) {
+        state.kills++;
+        state.playerScore++;
+        state.roundMessage = state.playerScore >= state.targetScore ? "You win the set" : "Eliminated bot";
+        spawnPickup(state.npc.x, state.npc.z);
+        respawnNpc();
+      }
+    }
+
+    function damagePlayer(amount) {
+      let remaining = amount;
+      if (state.player.shield > 0) {
+        const blocked = Math.min(state.player.shield, remaining);
+        state.player.shield -= blocked;
+        remaining -= blocked;
+      }
+      state.player.hp -= remaining;
+      state.player.shieldDelay = 1.4;
+      addDamageText(state.player.x, state.player.y, state.player.z, `-${Math.round(amount)}`, "#ff5c7a");
+    }
+
+    function spawnPickup(x, z) {
+      state.pickups.push({ x, y: groundHeightAt(x, z) + 0.35, z, life: 18 });
+    }
+
+    function collectPickup(index) {
+      const pickup = state.pickups[index];
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + 35);
+      state.player.shield = Math.min(state.player.maxShield, state.player.shield + 20);
+      for (let i = 0; i < state.ammo.length; i++) {
+        const weapon = weapons[i];
+        const ammo = state.ammo[i];
+        ammo.reserve = Math.min(weapon.reserve, ammo.reserve + Math.ceil(weapon.mag * 1.2));
+      }
+      state.roundMessage = "Supply pickup: health + ammo";
+      state.sparks.push({ x: pickup.x, y: pickup.y, z: pickup.z, life: 1, color: "#77ffb0" });
+      state.pickups.splice(index, 1);
+    }
+
+    function drawNpc() {
+      const n = state.npc;
+      const covered = blockedLine(state.player.x, state.player.z, n.x, n.z);
+      const edge = state.seeEnemyThroughWalls && covered ? "#fffb8f" : covered ? "#9ba6b4" : "#11151d";
+      line3d([n.x, 1.66, n.z], [n.x, 0.85, n.z], "#2df084", 8);
+      line3d([n.x - 0.52, 1.24, n.z], [n.x + 0.52, 1.24, n.z], "#41b6ff", 7);
+      line3d([n.x - 0.18, 0.85, n.z], [n.x - 0.28, 0.18, n.z], "#41b6ff", 7);
+      line3d([n.x + 0.18, 0.85, n.z], [n.x + 0.28, 0.18, n.z], "#41b6ff", 7);
+      circle3d(n.x, 1.95, n.z, 0.28, covered ? "#586170" : "#ffcf5a", edge);
+
+      const hp = project(n.x, 2.38, n.z);
+      if (hp) {
+        const w = Math.max(28, 0.9 * hp.s);
+        ctx.fillStyle = "rgba(0,0,0,0.58)";
+        ctx.fillRect(hp.x - w / 2, hp.y - 8, w, 7);
+        ctx.fillStyle = "#ff4365";
+        ctx.fillRect(hp.x - w / 2, hp.y - 8, w * (n.hp / n.maxHp), 7);
+      }
+    }
+
+    function drawGround() {
+      ctx.fillStyle = "#70bdf2";
+      ctx.fillRect(0, 0, innerWidth, innerHeight);
+      ctx.fillStyle = "#4ebd73";
+      ctx.fillRect(0, innerHeight / 2, innerWidth, innerHeight / 2);
+
+      for (let i = -14; i <= 14; i += 2) {
+        line3d([i, 0, -16], [i, 0, 18], "rgba(255,255,255,0.28)", 1);
+        line3d([-14, 0, i], [14, 0, i], "rgba(255,255,255,0.28)", 1);
+      }
+    }
+
+    function drawCrosshair() {
+      const x = innerWidth / 2;
+      const y = innerHeight / 2;
+      const scoped = state.aiming && currentWeapon().name === "Sniper";
+
+      if (scoped) {
+        const radius = Math.min(innerWidth, innerHeight) * 0.34;
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.76)";
+        ctx.fillRect(0, 0, innerWidth, y - radius);
+        ctx.fillRect(0, y + radius, innerWidth, innerHeight - (y + radius));
+        ctx.fillRect(0, y - radius, x - radius, radius * 2);
+        ctx.fillRect(x + radius, y - radius, innerWidth - (x + radius), radius * 2);
+        const vignette = ctx.createRadialGradient(x, y, radius * 0.55, x, y, radius);
+        vignette.addColorStop(0, "rgba(0,0,0,0)");
+        vignette.addColorStop(1, "rgba(0,0,0,0.42)");
+        ctx.fillStyle = vignette;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(238, 242, 248, 0.92)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(238, 242, 248, 0.9)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x - radius, y);
+        ctx.lineTo(x - 14, y);
+        ctx.moveTo(x + 14, y);
+        ctx.lineTo(x + radius, y);
+        ctx.moveTo(x, y - radius);
+        ctx.lineTo(x, y - 14);
+        ctx.moveTo(x, y + 14);
+        ctx.lineTo(x, y + radius);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(238, 242, 248, 0.42)";
+        ctx.lineWidth = 1;
+        for (let i = 1; i <= 4; i++) {
+          const mark = i * 34;
+          ctx.beginPath();
+          ctx.moveTo(x - 5, y + mark);
+          ctx.lineTo(x + 5, y + mark);
+          ctx.moveTo(x - 5, y - mark);
+          ctx.lineTo(x + 5, y - mark);
+          ctx.moveTo(x + mark, y - 5);
+          ctx.lineTo(x + mark, y + 5);
+          ctx.moveTo(x - mark, y - 5);
+          ctx.lineTo(x - mark, y + 5);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = "rgba(119, 255, 176, 0.75)";
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y);
+        ctx.lineTo(x + 5, y);
+        ctx.moveTo(x, y - 5);
+        ctx.lineTo(x, y + 5);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(238, 242, 248, 0.86)";
+        ctx.font = "700 12px Arial, Helvetica, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("SNIPER SCOPE", x, y + radius - 18);
+        ctx.restore();
+        return;
+      }
+
+      const gap = state.aiming ? 3 : 4;
+      const length = state.aiming ? 9 : 12;
+      ctx.strokeStyle = "#f2f7ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - length, y);
+      ctx.lineTo(x - gap, y);
+      ctx.moveTo(x + gap, y);
+      ctx.lineTo(x + length, y);
+      ctx.moveTo(x, y - length);
+      ctx.lineTo(x, y - gap);
+      ctx.moveTo(x, y + gap);
+      ctx.lineTo(x, y + length);
+      ctx.stroke();
+
+      if (state.aiming) {
+        ctx.strokeStyle = "rgba(119, 255, 176, 0.8)";
+        ctx.beginPath();
+        ctx.arc(x, y, 18, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      if (state.hitMarker > 0) {
+        ctx.strokeStyle = "#fffb8f";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x - 16, y - 16);
+        ctx.lineTo(x - 7, y - 7);
+        ctx.moveTo(x + 16, y - 16);
+        ctx.lineTo(x + 7, y - 7);
+        ctx.moveTo(x - 16, y + 16);
+        ctx.lineTo(x - 7, y + 7);
+        ctx.moveTo(x + 16, y + 16);
+        ctx.lineTo(x + 7, y + 7);
+        ctx.stroke();
+      }
+    }
+
+    function drawBullets() {
+      for (const b of state.bullets) {
+        circle3d(b.x, b.y, b.z, b.explosive ? 0.16 : 0.06, b.explosive ? "#ff7a30" : "#ffe66b", b.explosive ? "#ffd0a8" : "#fff5b8");
+      }
+      for (const s of state.sparks) {
+        circle3d(s.x, s.y, s.z, 0.08 * s.life, s.color, null);
+      }
+      for (const text of state.damageTexts) {
+        const p = project(text.x, text.y, text.z);
+        if (!p) continue;
+        ctx.globalAlpha = Math.max(0, text.life);
+        ctx.fillStyle = text.color;
+        ctx.font = "700 18px Arial, Helvetica, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(text.text, p.x, p.y);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function drawPickups() {
+      for (const pickup of state.pickups) {
+        circle3d(pickup.x, pickup.y, pickup.z, 0.22, "#77ffb0", "#eafff2");
+        circle3d(pickup.x, pickup.y + 0.24, pickup.z, 0.1, "#ffdf5e", null);
+      }
+    }
+
+    function drawWeaponBar() {
+      const cardW = 112;
+      const cardH = 48;
+      const gap = 8;
+      const total = weapons.length * cardW + (weapons.length - 1) * gap;
+      let x = innerWidth / 2 - total / 2;
+      const y = innerHeight - cardH - 16;
+      weapons.forEach((weapon, index) => {
+        const active = index === state.weaponIndex;
+        ctx.fillStyle = active ? "rgba(255, 235, 105, 0.92)" : "rgba(20, 30, 42, 0.78)";
+        ctx.fillRect(x, y, cardW, cardH);
+        ctx.strokeStyle = active ? "#fff7ad" : "rgba(255,255,255,0.28)";
+        ctx.lineWidth = active ? 3 : 1;
+        ctx.strokeRect(x, y, cardW, cardH);
+        ctx.fillStyle = active ? "#0b1018" : "#eef2f8";
+        ctx.font = "700 13px Arial, Helvetica, sans-serif";
+        ctx.textAlign = "left";
+        ctx.fillText(`${index + 1}`, x + 8, y + 18);
+        ctx.font = "700 15px Arial, Helvetica, sans-serif";
+        ctx.fillText(weapon.name, x + 28, y + 30);
+        x += cardW + gap;
+      });
+    }
+
+    function draw() {
+      drawGround();
+      if (!state.seeEnemyThroughWalls) drawNpc();
+      const drawables = [];
+      for (const wall of walls) drawables.push(...boxFaces(wall, "#5c6df2"));
+      for (const ramp of ramps) drawables.push(...rampFaces(ramp, "#ffcb4d"));
+      drawables.sort((a, b) => b.depth - a.depth);
+      for (const item of drawables) item.draw();
+      if (state.seeEnemyThroughWalls) drawNpc();
+      drawBullets();
+      drawPickups();
+      drawCrosshair();
+      drawWeaponBar();
+      if (!state.alive) {
+        ctx.fillStyle = "rgba(120,0,20,0.35)";
+        ctx.fillRect(0, 0, innerWidth, innerHeight);
+      }
+    }
+
+    function movePlayer(dt) {
+      const physics = currentPhysics();
+      const f = forward();
+      const r = right();
+      let dx = 0;
+      let dz = 0;
+      if (state.keys.has("w")) { dx += f.x; dz += f.z; }
+      if (state.keys.has("s")) { dx -= f.x; dz -= f.z; }
+      if (state.keys.has("d")) { dx += r.x; dz += r.z; }
+      if (state.keys.has("a")) { dx -= r.x; dz -= r.z; }
+      if (state.mobileMode) {
+        dx += f.x * -state.virtualMove.z + r.x * state.virtualMove.x;
+        dz += f.z * -state.virtualMove.z + r.z * state.virtualMove.x;
+      }
+      const len = Math.hypot(dx, dz);
+      state.moving = len > 0.01;
+      if (len > 0) {
+        const airControl = state.player.grounded ? 1 : physics.airControl;
+        const crouchSpeed = state.crouching ? 0.58 : 1;
+        const slideControl = state.player.slideTime > 0 ? 0.22 : 1;
+        const playerSpeed = physics.speed * state.settings.playerSpeed;
+        const nx = state.player.x + (dx / len) * playerSpeed * crouchSpeed * slideControl * airControl * dt;
+        const nz = state.player.z + (dz / len) * playerSpeed * crouchSpeed * slideControl * airControl * dt;
+        if (!insideWall(nx, nz, state.player.ground)) {
+          state.player.x = clamp(nx, -13, 13);
+          state.player.z = clamp(nz, -15, 17);
+        }
+      }
+      updateSlide(dt);
+      applyGravity(dt);
+    }
+
+    function applyGravity(dt) {
+      const p = state.player;
+      const physics = currentPhysics();
+      const ground = groundHeightAt(p.x, p.z);
+      const eyeHeight = state.crouching ? 1.05 : 1.6;
+      p.vy -= physics.gravity * dt;
+      p.y += p.vy * dt;
+      p.ground = ground;
+      if (p.y <= ground + eyeHeight) {
+        p.y = ground + eyeHeight;
+        p.vy = 0;
+        p.grounded = true;
+      } else {
+        p.grounded = false;
+      }
+    }
+
+    function jump() {
+      if (!state.alive || !state.started || !state.player.grounded || state.crouching) return;
+      state.player.vy = currentPhysics().jump;
+      state.player.grounded = false;
+    }
+
+    function beginCrouch() {
+      if (state.crouching) return;
+      state.crouching = true;
+      const f = forward();
+      const r = right();
+      let dx = 0;
+      let dz = 0;
+      if (state.keys.has("w")) { dx += f.x; dz += f.z; }
+      if (state.keys.has("s")) { dx -= f.x; dz -= f.z; }
+      if (state.keys.has("d")) { dx += r.x; dz += r.z; }
+      if (state.keys.has("a")) { dx -= r.x; dz -= r.z; }
+      if (state.mobileMode) {
+        dx += f.x * -state.virtualMove.z + r.x * state.virtualMove.x;
+        dz += f.z * -state.virtualMove.z + r.z * state.virtualMove.x;
+      }
+      const len = Math.hypot(dx, dz);
+      if (state.player.grounded && len > 0.35) {
+        const physics = currentPhysics();
+        const playerSpeed = physics.speed * state.settings.playerSpeed;
+        state.player.slideX = (dx / len) * playerSpeed * 1.65;
+        state.player.slideZ = (dz / len) * playerSpeed * 1.65;
+        state.player.slideTime = 0.48;
+        state.roundMessage = "Slide";
+      }
+    }
+
+    function endCrouch() {
+      state.crouching = false;
+    }
+
+    function updateSlide(dt) {
+      if (state.player.slideTime <= 0) return;
+      const p = state.player;
+      const nx = p.x + p.slideX * dt;
+      const nz = p.z + p.slideZ * dt;
+      if (!insideWall(nx, nz, p.ground)) {
+        p.x = clamp(nx, -13, 13);
+        p.z = clamp(nz, -15, 17);
+      }
+      p.slideX *= Math.pow(0.08, dt);
+      p.slideZ *= Math.pow(0.08, dt);
+      p.slideTime -= dt;
+    }
+
+    function insideWall(x, z, playerGround = 0) {
+      for (const wall of walls) {
+        const inFootprint =
+          x > wall.x - wall.w / 2 - 0.25 &&
+          x < wall.x + wall.w / 2 + 0.25 &&
+          z > wall.z - wall.d / 2 - 0.25 &&
+          z < wall.z + wall.d / 2 + 0.25;
+        if (inFootprint && playerGround < wall.h - 0.35) return true;
+      }
+      return false;
+    }
+
+    function projectileHitsWall(x, y, z) {
+      for (const wall of walls) {
+        const inFootprint =
+          x > wall.x - wall.w / 2 &&
+          x < wall.x + wall.w / 2 &&
+          z > wall.z - wall.d / 2 &&
+          z < wall.z + wall.d / 2;
+        if (inFootprint && y <= wall.h) return true;
+      }
+      return false;
+    }
+
+    function moveNpc(dt) {
+      const n = state.npc;
+      const toPlayerX = state.player.x - n.x;
+      const toPlayerZ = state.player.z - n.z;
+      const toPlayerLen = Math.hypot(toPlayerX, toPlayerZ) || 1;
+      if (Math.random() < 0.018) {
+        n.vx += (Math.random() - 0.5) * 1.5;
+        n.vz += (Math.random() - 0.5) * 1.5;
+      }
+      const level = npcLevels[state.npcLevel];
+      const strafeX = -toPlayerZ / toPlayerLen;
+      const strafeZ = toPlayerX / toPlayerLen;
+      const keepAway = toPlayerLen < 7 ? -1 : 0.25;
+      n.vx += (strafeX * level.strafe + (toPlayerX / toPlayerLen) * keepAway) * dt;
+      n.vz += (strafeZ * level.strafe + (toPlayerZ / toPlayerLen) * keepAway) * dt;
+      const speed = Math.hypot(n.vx, n.vz) || 1;
+      const max = level.speed * state.settings.npcSpeed;
+      n.vx = (n.vx / speed) * Math.min(speed, max);
+      n.vz = (n.vz / speed) * Math.min(speed, max);
+
+      const nextX = n.x + n.vx * dt;
+      const nextZ = n.z + n.vz * dt;
+
+      if (nextX < -11 || nextX > 11 || insideWall(nextX, n.z)) {
+        n.vx *= -1;
+      } else {
+        n.x = nextX;
+      }
+
+      if (nextZ < -4 || nextZ > 15 || insideWall(n.x, nextZ)) {
+        n.vz *= -1;
+      } else {
+        n.z = nextZ;
+      }
+
+      n.x = clamp(n.x, -11, 11);
+      n.z = clamp(n.z, -4, 15);
+
+      const canSee = !blockedLine(n.x, n.z, state.player.x, state.player.z);
+      n.fireCooldown -= dt;
+      if (canSee && n.fireCooldown <= 0 && state.alive) {
+        npcShoot();
+        n.fireCooldown = npcShotDelay();
+      }
+
+      if (canSee) {
+        state.warning = "NPC has line of sight.";
+      } else {
+        state.warning = "";
+      }
+    }
+
+    function npcShoot() {
+      if (Math.random() < npcLevels[state.npcLevel].miss) {
+        state.sparks.push({ x: state.player.x + (Math.random() - 0.5) * 1.6, y: state.player.y + (Math.random() - 0.5) * 0.8, z: state.player.z + (Math.random() - 0.5) * 1.6, life: 0.7, color: "#ffb05c" });
+        return;
+      }
+
+      damagePlayer(npcShotDamage());
+      state.sparks.push({ x: state.player.x, y: state.player.y, z: state.player.z, life: 1, color: "#ff5c7a" });
+      if (state.player.hp <= 0) {
+        state.deaths++;
+        state.npcScore++;
+        state.alive = false;
+        state.roundMessage = state.npcScore >= state.targetScore ? "Bot wins the set" : "You got tagged out";
+        state.warning = "Resetting.";
+        setTimeout(respawnPlayer, 900);
+      }
+    }
+
+    function respawnPlayer() {
+      state.player.x = 0;
+      state.player.y = 1.6;
+      state.player.z = -8;
+      state.player.yaw = 0;
+      state.player.pitch = 0;
+      state.player.vy = 0;
+      state.player.ground = 0;
+      state.player.grounded = true;
+      state.player.hp = state.player.maxHp;
+      state.player.shield = state.player.maxShield;
+      state.player.shieldDelay = 0;
+      state.player.slideX = 0;
+      state.player.slideZ = 0;
+      state.player.slideTime = 0;
+      state.crouching = false;
+      state.npc.fireCooldown = npcShotDelay();
+      state.alive = true;
+    }
+
+    function rayPointDistance(origin, dir, point) {
+      const px = point.x - origin.x;
+      const py = point.y - origin.y;
+      const pz = point.z - origin.z;
+      const t = px * dir.x + py * dir.y + pz * dir.z;
+      if (t < 0) return Infinity;
+      const cx = origin.x + dir.x * t;
+      const cy = origin.y + dir.y * t;
+      const cz = origin.z + dir.z * t;
+      return Math.hypot(point.x - cx, point.y - cy, point.z - cz);
+    }
+
+    function aimDirection() {
+      const yaw = state.player.yaw;
+      const pitch = state.player.pitch;
+      return {
+        x: Math.sin(yaw) * Math.cos(pitch),
+        y: Math.sin(pitch),
+        z: Math.cos(yaw) * Math.cos(pitch)
+      };
+    }
+
+    function currentWeapon() {
+      return weapons[state.weaponIndex];
+    }
+
+    function currentAmmo() {
+      return state.ammo[state.weaponIndex];
+    }
+
+    function currentPhysics() {
+      return physicsModes[state.physicsIndex];
+    }
+
+    function withSpread(dir, spread) {
+      if (!spread) return dir;
+      const sx = (Math.random() - 0.5) * spread;
+      const sy = (Math.random() - 0.5) * spread;
+      const sz = (Math.random() - 0.5) * spread;
+      const x = dir.x + sx;
+      const y = dir.y + sy;
+      const z = dir.z + sz;
+      const len = Math.hypot(x, y, z) || 1;
+      return { x: x / len, y: y / len, z: z / len };
+    }
+
+    function shoot() {
+      if (!state.started || !state.alive) return;
+      const weapon = currentWeapon();
+      const ammo = currentAmmo();
+      if (!ammo || ammo.reloading) return;
+      if (ammo.mag <= 0) {
+        reloadWeapon();
+        return;
+      }
+      ammo.mag--;
+      const origin = { x: state.player.x, y: state.player.y, z: state.player.z };
+      state.shots++;
+
+      for (let pellet = 0; pellet < weapon.pellets; pellet++) {
+        let totalSpread = state.aiming ? weapon.spread * 0.35 : weapon.spread;
+        if (state.physicsIndex > 0) {
+          if (state.moving) totalSpread += weapon.moveSpread || 0.035;
+          if (!state.player.grounded) totalSpread += 0.04;
+          if (state.crouching) totalSpread *= 0.55;
+        }
+        const dir = withSpread(aimDirection(), totalSpread);
+        if (weapon.explosive) {
+          const physics = currentPhysics();
+          state.bullets.push({
+            x: origin.x,
+            y: origin.y - 0.05,
+            z: origin.z,
+            vx: dir.x * physics.rpgSpeed,
+            vy: dir.y * physics.rpgSpeed,
+            vz: dir.z * physics.rpgSpeed,
+            life: weapon.life,
+            explosive: true,
+            radius: weapon.radius,
+            gravity: state.rpgArc ? physics.rpgGravity : 0
+          });
+          continue;
+        }
+
+        let best = null;
+        for (const part of npcParts()) {
+          const dist = rayPointDistance(origin, dir, part);
+          const losBlocked = blockedLine(origin.x, origin.z, part.x, part.z);
+          if (!losBlocked && dist <= part.r && (!best || part.score > best.score)) best = part;
+        }
+        state.bullets.push({
+          x: origin.x,
+          y: origin.y - 0.1,
+          z: origin.z,
+          vx: dir.x * weapon.speed,
+          vy: dir.y * weapon.speed,
+          vz: dir.z * weapon.speed,
+          life: weapon.life,
+          explosive: false
+        });
+        if (best) {
+          const sniperHeadshot = weapon.name === "Sniper" && best.name === "head";
+          const damage = sniperHeadshot ? state.npc.maxHp : best.damage * weapon.damage;
+          if (sniperHeadshot) state.roundMessage = "Sniper headshot";
+          damageNpc(damage, best.x, best.y, best.z, best.name === "head" ? "#ffd166" : "#7cffae");
+          if (state.npc.hp >= state.npc.maxHp) break;
+        }
+      }
+    }
+
+    function explodeAt(x, y, z, radius) {
+      const dist = Math.hypot(state.npc.x - x, 1.2 - y, state.npc.z - z);
+      state.sparks.push({ x, y, z, life: 1.4, color: "#ff8a3d" });
+      state.sparks.push({ x, y: y + 0.35, z, life: 1, color: "#ffd166" });
+      if (!blockedLine(x, z, state.npc.x, state.npc.z) && dist <= radius) {
+        const falloff = 1 - dist / radius;
+        const damage = 22 + 48 * falloff;
+        damageNpc(damage, x, y, z, "#ffb347");
+      }
+
+      const p = state.player;
+      const playerFootY = p.y - (state.crouching ? 1.05 : 1.6);
+      const px = p.x - x;
+      const py = playerFootY + 0.35 - y;
+      const pz = p.z - z;
+      const playerDist = Math.hypot(px, py, pz);
+      const blastRadius = radius + 1.35;
+      if (playerDist <= blastRadius) {
+        const safeDist = Math.max(playerDist, 0.35);
+        const falloff = 1 - safeDist / blastRadius;
+        const horizontal = 13.5 * falloff;
+        const upward = 7.8 * falloff + (y <= playerFootY + 0.25 ? 3.2 : 0);
+        p.slideX += (px / safeDist) * horizontal;
+        p.slideZ += (pz / safeDist) * horizontal;
+        p.slideTime = Math.max(p.slideTime, 0.42);
+        p.vy = Math.max(p.vy, upward);
+        p.grounded = false;
+        damagePlayer(6 + 10 * falloff);
+        state.roundMessage = "Rocket jump";
+      }
+    }
+
+    function updateWeaponFire(dt) {
+      if (state.fireCooldown > 0) state.fireCooldown -= dt;
+      if (state.mouseDown && state.fireCooldown <= 0) {
+        shoot();
+        state.fireCooldown = currentWeapon().delay;
+      }
+    }
+
+    function respawnNpc() {
+      state.npc.hp = state.npc.maxHp;
+      for (let tries = 0; tries < 120; tries++) {
+        const x = (Math.random() - 0.5) * 18;
+        const z = 3 + Math.random() * 12;
+        if (!insideWall(x, z, 0) && groundHeightAt(x, z) < 0.25) {
+          state.npc.x = x;
+          state.npc.z = z;
+          break;
+        }
+      }
+      state.npc.vx = Math.random() < 0.5 ? -1.8 : 1.8;
+      state.npc.vz = Math.random() < 0.5 ? -1.2 : 1.2;
+      state.npc.fireCooldown = npcShotDelay();
+    }
+
+    function updateProjectiles(dt) {
+      for (const b of state.bullets) {
+        if (b.explosive) b.vy -= b.gravity * dt;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.z += b.vz * dt;
+        b.life -= dt;
+
+        if (b.explosive) {
+          const hitGround = b.y <= groundHeightAt(b.x, b.z) + 0.08;
+          const hitWall = projectileHitsWall(b.x, b.y, b.z);
+          const hitNpc = Math.hypot(state.npc.x - b.x, 1.2 - b.y, state.npc.z - b.z) < 0.7;
+          if (hitGround || hitWall || hitNpc) {
+            explodeAt(b.x, Math.max(b.y, groundHeightAt(b.x, b.z)), b.z, b.radius);
+            b.life = 0;
+          }
+        }
+      }
+      state.bullets = state.bullets.filter((b) => b.life > 0);
+      for (const s of state.sparks) s.life -= dt * 3.2;
+      state.sparks = state.sparks.filter((s) => s.life > 0);
+    }
+
+    function updateEffects(dt) {
+      if (state.hitMarker > 0) state.hitMarker -= dt;
+      if (state.player.shieldDelay > 0) {
+        state.player.shieldDelay -= dt;
+      }
+
+      for (const text of state.damageTexts) {
+        text.y += dt * 0.8;
+        text.life -= dt * 1.4;
+      }
+      state.damageTexts = state.damageTexts.filter((text) => text.life > 0);
+    }
+
+    function updatePickups(dt) {
+      for (let i = state.pickups.length - 1; i >= 0; i--) {
+        const pickup = state.pickups[i];
+        pickup.life -= dt;
+        pickup.y = groundHeightAt(pickup.x, pickup.z) + 0.35 + Math.sin(performance.now() * 0.006 + i) * 0.08;
+        if (Math.hypot(state.player.x - pickup.x, state.player.z - pickup.z) < 1.1 && Math.abs(state.player.y - pickup.y) < 2.2) {
+          collectPickup(i);
+        } else if (pickup.life <= 0) {
+          state.pickups.splice(i, 1);
+        }
+      }
+    }
+
+    function updateHud() {
+      const acc = state.shots ? Math.round((state.hits / state.shots) * 100) : 100;
+      const moving = state.moving ? "<strong>moving</strong>" : "<span class='danger'>stopped</span>";
+      const weaponList = weapons.map((weapon, index) => (
+        index === state.weaponIndex ? `<strong>${index + 1}:${weapon.name}</strong>` : `${index + 1}:${weapon.name}`
+      )).join(" ");
+      const level = npcLevels[state.npcLevel];
+      const physics = currentPhysics();
+      const ammo = currentAmmo();
+      hud.innerHTML = `
+        <div>Score: <strong>${state.playerScore}</strong> - <strong>${state.npcScore}</strong> First to ${state.targetScore}</div>
+        <div>Kills: <strong>${state.kills}</strong> Deaths: <strong>${state.deaths}</strong> ${state.roundMessage}</div>
+        <div>Shots: ${state.shots} Hits: ${state.hits} Accuracy: <strong>${acc}%</strong></div>
+        <div>Shield: <strong>${Math.ceil(state.player.shield)}</strong>/<strong>${state.player.maxShield}</strong> HP: <strong>${Math.max(0, Math.ceil(state.player.hp))}</strong>/<strong>${state.player.maxHp}</strong> Aim: <strong>${state.aiming ? "ADS" : "hip"}</strong></div>
+        <div>NPC: <strong>${level.name}</strong> Miss ${Math.round(level.miss * 100)}% Dmg ${state.settings.npcDamage} HP: <strong>${Math.max(0, Math.ceil(state.npc.hp))}</strong>/<strong>${state.npc.maxHp}</strong></div>
+        <div>Physics: <strong>${physics.name}</strong> RPG: <strong>${state.rpgArc ? "gravity" : "straight"}</strong> Enemy Vision: <strong>${state.seeEnemyThroughWalls ? "on" : "off"}</strong></div>
+        <div>Custom: Speed <strong>${state.settings.playerSpeed.toFixed(2)}x</strong> NPC Speed <strong>${state.settings.npcSpeed.toFixed(2)}x</strong> Sens <strong>${state.settings.mouseSensitivity.toFixed(2)}x</strong></div>
+        <div>Weapon: ${weaponList}</div>
+        <div>Ammo: <strong>${ammo.mag}</strong> / ${ammo.reserve} ${ammo.reloading ? `Reloading ${ammo.reloadTimer.toFixed(1)}s` : ""}</div>
+        <div>Movement: ${moving} ${state.crouching ? "crouch" : "stand"} ${state.player.slideTime > 0 ? "slide" : ""} Height: <strong>${state.player.ground.toFixed(1)}</strong> ${state.player.grounded ? "grounded" : "air"}</div>
+        <div class="danger">${state.warning}</div>
+      `;
+    }
+
+    function setWeapon(index) {
+      state.weaponIndex = clamp(index, 0, weapons.length - 1);
+      state.fireCooldown = 0;
+      refreshMobileWeaponButtons();
+    }
+
+    function changeNpcLevel(delta) {
+      state.npcLevel = clamp(state.npcLevel + delta, 0, npcLevels.length - 1);
+      state.npc.fireCooldown = npcShotDelay();
+      state.roundMessage = `NPC level: ${npcLevels[state.npcLevel].name}`;
+    }
+
+    function cyclePhysics() {
+      state.physicsIndex = (state.physicsIndex + 1) % physicsModes.length;
+      weapons = weaponLoadouts[state.physicsIndex];
+      state.weaponIndex = 0;
+      initAmmo();
+      state.roundMessage = `Physics: ${currentPhysics().name}`;
+      physicsButton.textContent = currentPhysics().name.split("/")[0];
+      rebuildMobileWeaponButtons();
+    }
+
+    function toggleRpgMode() {
+      state.rpgArc = !state.rpgArc;
+      state.roundMessage = `RPG: ${state.rpgArc ? "gravity arc" : "straight rocket"}`;
+      rpgButton.textContent = state.rpgArc ? "ARC" : "LINE";
+    }
+
+    function toggleEnemyVision() {
+      state.seeEnemyThroughWalls = !state.seeEnemyThroughWalls;
+      state.roundMessage = `Enemy vision: ${state.seeEnemyThroughWalls ? "on" : "off"}`;
+    }
+
+    function reloadWeapon() {
+      const weapon = currentWeapon();
+      const ammo = currentAmmo();
+      if (!ammo || ammo.reloading || ammo.mag >= weapon.mag || ammo.reserve <= 0) return;
+      ammo.reloading = true;
+      ammo.reloadTimer = weapon.reload;
+      state.mouseDown = false;
+      state.roundMessage = `Reloading ${weapon.name}`;
+    }
+
+    function updateReloads(dt) {
+      for (let i = 0; i < state.ammo.length; i++) {
+        const ammo = state.ammo[i];
+        const weapon = weapons[i];
+        if (!ammo.reloading) continue;
+        ammo.reloadTimer -= dt;
+        if (ammo.reloadTimer <= 0) {
+          const needed = weapon.mag - ammo.mag;
+          const loaded = Math.min(needed, ammo.reserve);
+          ammo.mag += loaded;
+          ammo.reserve -= loaded;
+          ammo.reloading = false;
+          if (i === state.weaponIndex) state.roundMessage = `${weapon.name} ready`;
+        }
+      }
+    }
+
+    function setMobileMode(enabled) {
+      state.mobileMode = enabled;
+      mobileControls.classList.toggle("active", enabled);
+      mobileToggle.classList.toggle("active", enabled);
+      mobileToggle.textContent = enabled ? "Mobile: On" : "Mobile: Off";
+      physicsButton.textContent = currentPhysics().name.split("/")[0];
+      rpgButton.textContent = state.rpgArc ? "ARC" : "LINE";
+      state.virtualMove.x = 0;
+      state.virtualMove.z = 0;
+      moveNub.style.transform = "translate(0px, 0px)";
+      state.mouseDown = false;
+      state.aiming = false;
+      state.crouching = false;
+    }
+
+    function refreshMobileWeaponButtons() {
+      for (const button of mobileWeapons.querySelectorAll("button")) {
+        button.classList.toggle("active", Number(button.dataset.weapon) === state.weaponIndex);
+      }
+    }
+
+    function rebuildMobileWeaponButtons() {
+      mobileWeapons.replaceChildren();
+      for (let i = 0; i < weapons.length; i++) {
+        const button = document.createElement("button");
+        button.textContent = String(i + 1);
+        button.dataset.weapon = String(i);
+        button.title = weapons[i].name;
+        button.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          setWeapon(i);
+        });
+        mobileWeapons.appendChild(button);
+      }
+      refreshMobileWeaponButtons();
+    }
+
+    function tick(now) {
+      const dt = Math.min(0.033, (now - state.lastTime) / 1000);
+      state.lastTime = now;
+      if (state.started && state.alive) {
+        movePlayer(dt);
+        moveNpc(dt);
+        updateWeaponFire(dt);
+        updateProjectiles(dt);
+        updateEffects(dt);
+        updateReloads(dt);
+        updatePickups(dt);
+      }
+      draw();
+      updateHud();
+      requestAnimationFrame(tick);
+    }
+
+    addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if ("wasd".includes(key)) state.keys.add(key);
+      if (event.code === "Space") {
+        event.preventDefault();
+        jump();
+      }
+      if (key === "c") {
+        beginCrouch();
+      }
+      if ("12345".includes(key)) {
+        setWeapon(Number(key) - 1);
+      }
+      if (key === "[") {
+        changeNpcLevel(-1);
+      }
+      if (key === "]") {
+        changeNpcLevel(1);
+      }
+      if (key === "p") {
+        cyclePhysics();
+      }
+      if (key === "g") {
+        toggleRpgMode();
+      }
+      if (key === "v") {
+        toggleEnemyVision();
+      }
+      if (key === "o") {
+        setSettingsOpen(!state.settingsOpen);
+      }
+      if (key === "escape" && state.settingsOpen) {
+        setSettingsOpen(false);
+      }
+      if (key === "q") {
+        state.aiming = !state.aiming;
+        aimButton.classList.toggle("active", state.aiming);
+      }
+      if (key === "r") reloadWeapon();
+      if (key === "t") respawnPlayer();
+    });
+
+    addEventListener("keyup", (event) => {
+      const key = event.key.toLowerCase();
+      state.keys.delete(key);
+      if (key === "c") endCrouch();
+    });
+
+    canvas.addEventListener("mousedown", (event) => {
+      if (!state.started) return;
+      if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
+      if (event.button === 0) {
+        state.mouseDown = true;
+        state.fireCooldown = 0;
+      }
+      if (event.button === 2) state.aiming = true;
+    });
+
+    addEventListener("mouseup", (event) => {
+      if (event.button === 0) state.mouseDown = false;
+      if (event.button === 2) state.aiming = false;
+    });
+
+    canvas.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+    });
+
+    canvas.addEventListener("click", () => {
+      if (!state.started) return;
+      if (document.pointerLockElement !== canvas) canvas.requestPointerLock();
+    });
+
+    addEventListener("mousemove", (event) => {
+      if (document.pointerLockElement !== canvas || !state.alive) return;
+      const baseSensitivity = state.aiming && currentWeapon().name === "Sniper" ? 0.00072 : state.aiming ? 0.00125 : 0.0022;
+      const sensitivity = baseSensitivity * state.settings.mouseSensitivity;
+      state.player.yaw += event.movementX * sensitivity;
+      state.player.pitch = clamp(state.player.pitch - event.movementY * sensitivity, -1.1, 1.1);
+    });
+
+    mobileToggle.addEventListener("click", () => {
+      setMobileMode(!state.mobileMode);
+    });
+
+    settingsToggle.addEventListener("click", () => {
+      setSettingsOpen(!state.settingsOpen);
+    });
+
+    rebuildMobileWeaponButtons();
+
+    function pointerPosition(event) {
+      return { x: event.clientX, y: event.clientY };
+    }
+
+    function updateStick(event) {
+      const rect = moveStick.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const point = pointerPosition(event);
+      const rawX = point.x - centerX;
+      const rawY = point.y - centerY;
+      const distance = Math.hypot(rawX, rawY);
+      const limit = rect.width * 0.34;
+      const scale = distance > limit ? limit / distance : 1;
+      const x = rawX * scale;
+      const y = rawY * scale;
+      moveNub.style.transform = `translate(${x}px, ${y}px)`;
+      state.virtualMove.x = x / limit;
+      state.virtualMove.z = y / limit;
+    }
+
+    moveStick.addEventListener("pointerdown", (event) => {
+      if (!state.mobileMode) return;
+      event.preventDefault();
+      moveStick.setPointerCapture(event.pointerId);
+      updateStick(event);
+    });
+
+    moveStick.addEventListener("pointermove", (event) => {
+      if (!state.mobileMode || !moveStick.hasPointerCapture(event.pointerId)) return;
+      event.preventDefault();
+      updateStick(event);
+    });
+
+    function resetStick(event) {
+      if (event && moveStick.hasPointerCapture(event.pointerId)) moveStick.releasePointerCapture(event.pointerId);
+      state.virtualMove.x = 0;
+      state.virtualMove.z = 0;
+      moveNub.style.transform = "translate(0px, 0px)";
+    }
+
+    moveStick.addEventListener("pointerup", resetStick);
+    moveStick.addEventListener("pointercancel", resetStick);
+
+    let lastLook = null;
+    lookPad.addEventListener("pointerdown", (event) => {
+      if (!state.mobileMode) return;
+      event.preventDefault();
+      lookPad.setPointerCapture(event.pointerId);
+      lastLook = pointerPosition(event);
+    });
+
+    lookPad.addEventListener("pointermove", (event) => {
+      if (!state.mobileMode || !lookPad.hasPointerCapture(event.pointerId) || !lastLook || !state.alive) return;
+      event.preventDefault();
+      const point = pointerPosition(event);
+      const baseSensitivity = state.aiming && currentWeapon().name === "Sniper" ? 0.0024 : state.aiming ? 0.004 : 0.006;
+      const sensitivity = baseSensitivity * state.settings.mobileSensitivity;
+      state.player.yaw += (point.x - lastLook.x) * sensitivity;
+      state.player.pitch = clamp(state.player.pitch - (point.y - lastLook.y) * sensitivity, -1.1, 1.1);
+      lastLook = point;
+    });
+
+    function endLook(event) {
+      if (event && lookPad.hasPointerCapture(event.pointerId)) lookPad.releasePointerCapture(event.pointerId);
+      lastLook = null;
+    }
+
+    lookPad.addEventListener("pointerup", endLook);
+    lookPad.addEventListener("pointercancel", endLook);
+
+    fireButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      state.mouseDown = true;
+      state.fireCooldown = 0;
+    });
+
+    fireButton.addEventListener("pointerup", (event) => {
+      event.preventDefault();
+      state.mouseDown = false;
+    });
+
+    fireButton.addEventListener("pointercancel", () => {
+      state.mouseDown = false;
+    });
+
+    aimButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      state.aiming = !state.aiming;
+      aimButton.classList.toggle("active", state.aiming);
+    });
+
+    jumpButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      jump();
+    });
+
+    crouchButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      beginCrouch();
+    });
+
+    crouchButton.addEventListener("pointerup", (event) => {
+      event.preventDefault();
+      endCrouch();
+    });
+
+    crouchButton.addEventListener("pointercancel", () => {
+      endCrouch();
+    });
+
+    reloadButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      reloadWeapon();
+    });
+
+    levelDown.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      changeNpcLevel(-1);
+    });
+
+    levelUp.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      changeNpcLevel(1);
+    });
+
+    physicsButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      cyclePhysics();
+    });
+
+    rpgButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      toggleRpgMode();
+    });
+
+    visionButton.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      toggleEnemyVision();
+    });
+
+    startButton.addEventListener("click", () => {
+      state.started = true;
+      state.mouseDown = false;
+      state.fireCooldown = currentWeapon().delay;
+      banner.style.display = "none";
+      canvas.requestPointerLock();
+      state.lastTime = performance.now();
+    });
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

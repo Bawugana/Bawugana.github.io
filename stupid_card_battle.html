@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stupid Card Battle: Mall Dungeon</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #fbfbff;
+      --muted: #aeb8ca;
+      --panel: rgba(10, 14, 25, 0.88);
+      --line: rgba(255,255,255,0.18);
+      --red: #ff6470;
+      --blue: #64d2ff;
+      --green: #7cf58f;
+      --gold: #ffd86b;
+      --pink: #ff78c9;
+      --purple: #b694ff;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(100,210,255,.16), transparent 27%),
+        radial-gradient(circle at 84% 14%, rgba(255,120,201,.14), transparent 25%),
+        radial-gradient(circle at 50% 100%, rgba(124,245,143,.12), transparent 31%),
+        #070914;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+    }
+
+    button { font: inherit; color: inherit; }
+    .game {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .topbar, .arena, .hand, .log, .panel, .card, .shop-card, .deck-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: inset 0 1px rgba(255,255,255,.08), 0 14px 34px rgba(0,0,0,.28);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(78px, 1fr));
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .stat {
+      min-height: 48px;
+      padding: 7px 9px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+    }
+
+    .stat span, .intent span, .shop-card span, .deck-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .arena {
+      display: grid;
+      grid-template-columns: minmax(230px, 1fr) minmax(270px, 1.05fr) minmax(230px, 1fr);
+      gap: 12px;
+      padding: 14px;
+      min-height: 380px;
+    }
+
+    .fighter {
+      position: relative;
+      overflow: hidden;
+      min-height: 330px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 12px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      background: rgba(255,255,255,.045);
+      text-align: center;
+    }
+
+    .avatar {
+      width: 128px;
+      height: 128px;
+      display: grid;
+      place-items: center;
+      border: 2px solid rgba(255,255,255,.22);
+      border-radius: 24px;
+      background: rgba(255,255,255,.08);
+      box-shadow: 0 18px 40px rgba(0,0,0,.28);
+      font-size: 68px;
+      transform: rotate(-3deg);
+    }
+
+    .enemy .avatar { transform: rotate(4deg); }
+    .fighter.hit .avatar { animation: hitShake .3s ease; }
+    .fighter.heal .avatar { animation: healPop .45s ease; }
+    @keyframes hitShake { 0%,100%{transform:translateX(0) rotate(4deg)} 25%{transform:translateX(-12px) rotate(-3deg)} 65%{transform:translateX(9px) rotate(7deg)} }
+    @keyframes healPop { 0%,100%{filter:none;transform:scale(1)} 45%{filter:drop-shadow(0 0 16px var(--green));transform:scale(1.1)} }
+    .float-text { position:absolute; z-index:4; left:50%; top:30%; translate:-50% 0; pointer-events:none; font-size:32px; font-weight:900; color:var(--red); text-shadow:0 3px 10px #000; animation:floatAway .8s ease forwards; }
+    .float-text.good { color:var(--green); }
+    @keyframes floatAway { to{translate:-50% -70px;opacity:0;scale:1.25} }
+    .fighter h2 { margin: 0; font-size: 24px; }
+    .badges { min-height: 22px; color: var(--gold); font-size: 12px; font-weight: 900; }
+    .bars { width: min(280px, 88%); display: grid; gap: 7px; }
+    .bar { height: 14px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.12); }
+    .fill { height: 100%; width: 100%; border-radius: inherit; transition: width 160ms ease; }
+    .hp { background: linear-gradient(90deg, var(--red), var(--pink)); }
+    .block { background: linear-gradient(90deg, var(--blue), var(--green)); }
+
+    .center { display: grid; grid-template-rows: auto 1fr auto; gap: 10px; }
+    .intent {
+      min-height: 90px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      background: rgba(255,255,255,.06);
+      padding: 12px;
+      text-align: center;
+    }
+    .intent strong { display: block; margin-top: 6px; font-size: 22px; }
+    .log { padding: 10px; overflow: auto; color: var(--muted); font-size: 14px; line-height: 1.35; }
+    .log div { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+    button {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.08);
+      font-weight: 900;
+      cursor: pointer;
+    }
+    button.primary { background: var(--gold); color: #181007; border-color: rgba(255,216,107,.82); }
+    button.shop-start { background: var(--green); color: #061307; border-color: rgba(124,245,143,.82); }
+    button.danger { background: rgba(255,100,112,.16); border-color: rgba(255,100,112,.55); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .hand {
+      min-height: 214px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(128px, 1fr));
+      gap: 10px;
+    }
+
+    .card, .shop-card, .deck-card {
+      background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.045));
+    }
+    .card {
+      min-height: 188px;
+      padding: 10px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 7px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, opacity 120ms ease;
+    }
+    .card:hover { transform: translateY(-7px); border-color: rgba(255,216,107,.72); }
+    .card:focus-visible, button:focus-visible { outline:3px solid var(--gold); outline-offset:3px; }
+    .card[data-rarity="rare"] { border-color:rgba(182,148,255,.7); background:linear-gradient(145deg,rgba(182,148,255,.2),rgba(255,255,255,.045)); }
+    .card[data-rarity="legendary"] { border-color:rgba(255,216,107,.8); background:linear-gradient(145deg,rgba(255,216,107,.22),rgba(255,120,201,.08)); }
+    .hotkey { opacity:.55; font-size:10px; float:right; }
+    .card.disabled { opacity: .45; cursor: not-allowed; }
+    .card.disabled:hover { transform: none; border-color: var(--line); }
+    .cost {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--blue);
+      color: #05121a;
+      font-weight: 900;
+    }
+    .card h3, .shop-card h3, .deck-card h3 { margin: 0; font-size: 17px; line-height: 1.05; }
+    .card p, .shop-card p, .deck-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.25; }
+    .tag { color: var(--gold); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 8;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: rgba(4,6,12,.7);
+      backdrop-filter: blur(5px);
+    }
+    .overlay.hidden { display: none; }
+    .panel {
+      width: min(1040px, 100%);
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      padding: 20px;
+      background: rgba(10,14,25,.96);
+    }
+    .panel h1 { margin: 0 0 8px; font-size: clamp(34px, 7vw, 64px); line-height: .94; }
+    .panel p { color: var(--muted); line-height: 1.45; }
+    .shop-layout { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; margin-top: 14px; }
+    .shop-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .shop-card { min-height: 172px; padding: 12px; text-align: left; display: grid; grid-template-rows: auto auto 1fr auto; gap: 7px; }
+    .shop-card button { margin-top: 8px; width: 100%; }
+    .deck-list { display: grid; gap: 8px; max-height: 430px; overflow: auto; padding-right: 4px; }
+    .deck-card {
+      min-height: 86px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      text-align: left;
+    }
+    .deck-card button { min-height: 34px; padding: 0 10px; }
+    .shop-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .upgrade-row { display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px; }
+    .run-tip { margin:12px 0 0;padding:10px 12px;border-left:3px solid var(--gold);background:rgba(255,216,107,.07);font-size:13px;color:var(--muted); }
+
+    @media (max-width: 940px) {
+      .topbar { grid-template-columns: repeat(4, 1fr); }
+      .arena, .shop-layout { grid-template-columns: 1fr; }
+      .hand, .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .topbar { grid-template-columns: repeat(2, 1fr); }
+      .hand, .shop-grid { grid-template-columns: 1fr; }
+      .shop-actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <section class="topbar">
+      <div class="stat"><span>Round</span><strong id="round">1</strong></div>
+      <div class="stat"><span>Turn</span><strong id="turn">1</strong></div>
+      <div class="stat"><span>Energy</span><strong id="energy">3/3</strong></div>
+      <div class="stat"><span>Gold</span><strong id="gold">0</strong></div>
+      <div class="stat"><span>Deck</span><strong id="deck">0</strong></div>
+      <div class="stat"><span>Discard</span><strong id="discard">0</strong></div>
+      <div class="stat"><span>Nonsense</span><strong id="nonsense">0</strong></div>
+      <div class="stat"><span>Best</span><strong id="best">0</strong></div>
+    </section>
+
+    <section class="arena">
+      <div class="fighter">
+        <div class="avatar">🛒</div>
+        <h2>You, In A Mall</h2>
+        <div class="badges" id="playerBadges"></div>
+        <div class="bars">
+          <div>HP <strong id="playerHpText">48/48</strong></div>
+          <div class="bar"><div class="fill hp" id="playerHp"></div></div>
+          <div>Block <strong id="playerBlockText">0</strong></div>
+          <div class="bar"><div class="fill block" id="playerBlock"></div></div>
+        </div>
+      </div>
+
+      <div class="center">
+        <div class="intent">
+          <span>Enemy intent</span>
+          <strong id="intent">Shopping ominously</strong>
+        </div>
+        <div class="log" id="log"></div>
+        <div class="controls">
+          <button id="drawButton">Buy Draw (1)</button>
+          <button class="primary" id="endButton">End Turn</button>
+          <button id="restartButton">Restart</button>
+        </div>
+      </div>
+
+      <div class="fighter enemy">
+        <div class="avatar" id="enemyAvatar">🧃</div>
+        <h2 id="enemyName">Juice Box CEO</h2>
+        <div class="badges" id="enemyBadges"></div>
+        <div class="bars">
+          <div>HP <strong id="enemyHpText">55/55</strong></div>
+          <div class="bar"><div class="fill hp" id="enemyHp"></div></div>
+          <div>Block <strong id="enemyBlockText">0</strong></div>
+          <div class="bar"><div class="fill block" id="enemyBlock"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="hand" id="hand"></section>
+  </main>
+
+  <div class="overlay" id="startOverlay">
+    <div class="panel">
+      <h1>Stupid Card Battle</h1>
+      <p>Fight through the mall dungeon. Before every round, visit the card shop: buy better cards into your rotation, remove bad cards, then start the fight.</p>
+      <p class="run-tip"><b>Tip:</b> The enemy tells you exactly what it will do. Build block before big hits and spend gold on a focused deck.</p>
+      <button class="primary" id="startButton">Start Shopping</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="shopOverlay">
+    <div class="panel">
+      <h1 id="shopTitle">Card Shop</h1>
+      <p id="shopText">Buy cards, remove cards, then start the next round.</p>
+      <div class="shop-layout">
+        <section>
+          <h2>Buy Cards</h2>
+          <div class="shop-grid" id="shopGrid"></div>
+        </section>
+        <section>
+          <h2>Remove Cards</h2>
+          <p>Remove any card from your deck. Cost goes up after each removal this shop.</p>
+          <div class="deck-list" id="deckList"></div>
+        </section>
+      </div>
+      <div class="shop-actions">
+        <button id="rerollButton">Reroll Shop (7)</button>
+        <button id="healButton">Mall Pretzel Heal (12)</button>
+        <button class="shop-start" id="startRoundButton">Start Round</button>
+      </div>
+      <div class="upgrade-row">
+        <button id="energyUpgradeButton">⚡ Upgrade Energy (45g)</button>
+        <button id="healthUpgradeButton">❤️ +8 Max HP (30g)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ui = {
+      round: document.getElementById('round'),
+      turn: document.getElementById('turn'),
+      energy: document.getElementById('energy'),
+      gold: document.getElementById('gold'),
+      deck: document.getElementById('deck'),
+      discard: document.getElementById('discard'),
+      nonsense: document.getElementById('nonsense'),
+      best: document.getElementById('best'),
+      playerHp: document.getElementById('playerHp'),
+      enemyHp: document.getElementById('enemyHp'),
+      playerBlock: document.getElementById('playerBlock'),
+      enemyBlock: document.getElementById('enemyBlock'),
+      playerHpText: document.getElementById('playerHpText'),
+      enemyHpText: document.getElementById('enemyHpText'),
+      playerBlockText: document.getElementById('playerBlockText'),
+      enemyBlockText: document.getElementById('enemyBlockText'),
+      playerBadges: document.getElementById('playerBadges'),
+      enemyBadges: document.getElementById('enemyBadges'),
+      enemyName: document.getElementById('enemyName'),
+      enemyAvatar: document.getElementById('enemyAvatar'),
+      intent: document.getElementById('intent'),
+      log: document.getElementById('log'),
+      hand: document.getElementById('hand'),
+      startOverlay: document.getElementById('startOverlay'),
+      shopOverlay: document.getElementById('shopOverlay'),
+      shopGrid: document.getElementById('shopGrid'),
+      deckList: document.getElementById('deckList'),
+      shopTitle: document.getElementById('shopTitle'),
+      shopText: document.getElementById('shopText'),
+      startButton: document.getElementById('startButton'),
+      startRoundButton: document.getElementById('startRoundButton'),
+      rerollButton: document.getElementById('rerollButton'),
+      healButton: document.getElementById('healButton'),
+      energyUpgradeButton: document.getElementById('energyUpgradeButton'),
+      healthUpgradeButton: document.getElementById('healthUpgradeButton'),
+      endButton: document.getElementById('endButton'),
+      drawButton: document.getElementById('drawButton'),
+      restartButton: document.getElementById('restartButton')
+    };
+
+    const cardPool = [
+      { name: 'Sock Lawyer', cost: 1, price: 10, type: 'Attack', text: 'Deal 7. If you have nonsense, deal +3.', play: g => hitEnemy(7 + (g.nonsense ? 3 : 0)) },
+      { name: 'Microwave Apology', cost: 1, price: 10, type: 'Skill', text: 'Gain 8 block. Add 1 nonsense.', play: g => { gainBlock('player', 8); g.nonsense += 1; } },
+      { name: 'Expired Coupon', cost: 0, price: 13, type: 'Skill', text: 'Gain 1 energy. Draw 1.', play: g => { g.energy += 1; drawCards(1); } },
+      { name: 'Tiny Violin Dropkick', cost: 1, price: 12, type: 'Attack', text: 'Deal 4 damage twice.', play: () => { hitEnemy(4); hitEnemy(4); } },
+      { name: 'Burrito Parachute', cost: 1, price: 14, type: 'Skill', text: 'Gain 12 block. Discard a random card.', play: () => { gainBlock('player', 12); discardRandom(); } },
+      { name: 'Suspicious Spreadsheet', cost: 1, price: 16, type: 'Skill', text: 'Draw 3. Gain 1 energy if combo is 2+.', play: g => { drawCards(3); if (g.combo >= 2) g.energy += 1; } },
+      { name: 'Ceiling Fan Betrayal', cost: 2, price: 17, type: 'Attack', text: 'Deal 9 plus your nonsense.', play: g => hitEnemy(9 + g.nonsense) },
+      { name: 'Public Bathroom Wizard', cost: 2, price: 18, type: 'Power', text: 'Add 3 nonsense. Heal 3.', play: g => { g.nonsense += 3; healPlayer(3); } },
+      { name: 'Wet Sock Catapult', cost: 2, price: 20, type: 'Attack', text: 'Deal 16. If enemy has block, deal +7.', play: g => hitEnemy(16 + (g.enemy.block > 0 ? 7 : 0)) },
+      { name: 'Legalize Screaming', cost: 0, price: 18, type: 'Power', text: 'Gain 2 nonsense. Take 1 damage.', play: g => { g.nonsense += 2; hitPlayer(1); } },
+      { name: 'Forbidden Yogurt', cost: 2, price: 22, type: 'Skill', text: 'Heal 9. Add 2 nonsense.', play: g => { healPlayer(9); g.nonsense += 2; } },
+      { name: 'Grandma Speedrun', cost: 2, price: 24, type: 'Attack', text: 'Deal 7 damage three times.', play: () => { hitEnemy(7); hitEnemy(7); hitEnemy(7); } },
+      { name: 'Doorbell Meteor', cost: 3, price: 26, type: 'Attack', text: 'Deal 34. Enemy gains 7 block.', play: g => { hitEnemy(34); g.enemy.block += 7; } },
+      { name: 'Clown College Thesis', cost: 1, price: 20, type: 'Attack', text: 'Deal damage equal to 5 + deck size.', play: g => hitEnemy(5 + g.deck.length) },
+      { name: 'Receipt Tornado', cost: 2, price: 25, type: 'Skill', text: 'Draw 5, then gain 5 block.', play: () => { drawCards(5); gainBlock('player', 5); } },
+      { name: 'Pocket Sand Premium', cost: 1, price: 19, type: 'Skill', text: 'Remove all enemy block. Gain that much block.', play: g => { const stolen = g.enemy.block; g.enemy.block = 0; gainBlock('player', stolen); } },
+      { name: 'Spicy Loyalty Program', cost: 1, price: 23, type: 'Power', text: 'Gain 2 gold and 2 energy.', play: g => { g.gold += 2; g.energy += 2; } },
+      { name: 'Shopping Cart Drift', cost: 1, price: 21, type: 'Attack', text: 'Deal 10. If this is your third card, draw 2.', play: g => { hitEnemy(10); if (g.combo >= 3) drawCards(2); } },
+      { name: 'Existential Coupon Printer', cost: 2, price: 28, type: 'Skill', text: 'Add 4 nonsense. Draw nonsense/2 cards.', play: g => { g.nonsense += 4; drawCards(Math.floor(g.nonsense / 2)); } },
+      { name: 'Manager Summoning Bell', cost: 3, price: 32, type: 'Attack', text: 'Deal 18. Repeat once for every 5 nonsense.', play: g => { const hits = 1 + Math.floor(g.nonsense / 5); for (let i = 0; i < hits; i++) hitEnemy(18); } }
+    ];
+
+    const enemies = [
+      { name: 'Juice Box CEO', avatar: '🧃', hp: 52, scale: 1 },
+      { name: 'Sentient Traffic Cone', avatar: '🚧', hp: 64, scale: 1.12 },
+      { name: 'Intern With A Swordfish', avatar: '🧑‍💼', hp: 76, scale: 1.26 },
+      { name: 'Mall Pretzel Oracle', avatar: '🥨', hp: 88, scale: 1.38 },
+      { name: 'Final Boss: Tax Stapler', avatar: '📎', hp: 110, scale: 1.55 }
+    ];
+
+    const intents = [
+      { label: 'Deal DAMAGE damage', damage: 8, block: 0 },
+      { label: 'Gain BLOCK block', damage: 0, block: 11 },
+      { label: 'Deal DAMAGE twice', damage: 5, hits: 2, block: 0 },
+      { label: 'Deal DAMAGE and gain BLOCK block', damage: 7, block: 7 },
+      { label: 'Apply 2 panic and gain BLOCK block', damage: 0, block: 8, panic: 2 },
+      { label: 'Deal DAMAGE and steal 1 nonsense', damage: 10, steal: 1, block: 0 }
+    ];
+
+    const game = {
+      round: 1,
+      turn: 1,
+      energy: 3,
+      maxEnergy: 3,
+      energyUpgrades: 0,
+      healthUpgrades: 0,
+      gold: 30,
+      nonsense: 0,
+      combo: 0,
+      removeCost: 8,
+      shop: [],
+      deckList: [],
+      deck: [],
+      discard: [],
+      hand: [],
+      over: true,
+      inShop: false,
+      player: { hp: 48, maxHp: 48, block: 0, panic: 0 },
+      enemy: { hp: 52, maxHp: 52, block: 0, panic: 0, name: 'Juice Box CEO', avatar: '🧃', scale: 1 },
+      intent: intents[0]
+    };
+
+    let best = Number(localStorage.getItem('stupidCardShopBest') || 0);
+
+    function cloneCard(card) {
+      return { ...card, id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) };
+    }
+
+    function shuffle(list) {
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      return list;
+    }
+
+    function starterDeck() {
+      return [
+        cardPool[0], cardPool[0], cardPool[1], cardPool[1],
+        cardPool[2], cardPool[2], cardPool[3], cardPool[4],
+        cardPool[6], cardPool[7]
+      ].map(cloneCard);
+    }
+
+    function startRun() {
+      game.round = 1;
+      game.turn = 1;
+      game.energy = 3;
+      game.maxEnergy = 3;
+      game.energyUpgrades = 0;
+      game.healthUpgrades = 0;
+      game.gold = 30;
+      game.nonsense = 0;
+      game.combo = 0;
+      game.removeCost = 8;
+      game.deckList = starterDeck();
+      game.deck = [];
+      game.discard = [];
+      game.hand = [];
+      game.over = false;
+      game.player = { hp: 48, maxHp: 48, block: 0, panic: 0 };
+      ui.startOverlay.classList.add('hidden');
+      ui.log.innerHTML = '';
+      openShop('Welcome to the bad mall. Buy something upsetting before round 1.');
+      render();
+    }
+
+    function openShop(message) {
+      game.inShop = true;
+      game.over = true;
+      game.removeCost = 8 + (game.round - 1) * 2;
+      rollShop();
+      ui.shopText.textContent = message;
+      ui.shopOverlay.classList.remove('hidden');
+      renderShop();
+      render();
+    }
+
+    function rollShop() {
+      game.shop = shuffle([...cardPool]).slice(0, 6).map(cloneCard);
+    }
+
+    function startRound() {
+      const enemyData = enemies[Math.min(game.round - 1, enemies.length - 1)];
+      game.inShop = false;
+      game.over = false;
+      game.turn = 1;
+      game.energy = game.maxEnergy;
+      game.combo = 0;
+      game.nonsense = Math.max(0, game.nonsense - 1);
+      game.deck = shuffle(game.deckList.map(cloneCard));
+      game.discard = [];
+      game.hand = [];
+      game.enemy = {
+        hp: enemyData.hp,
+        maxHp: enemyData.hp,
+        block: 0,
+        panic: 0,
+        name: enemyData.name,
+        avatar: enemyData.avatar,
+        scale: enemyData.scale
+      };
+      game.player.block = 0;
+      pickIntent();
+      ui.shopOverlay.classList.add('hidden');
+      log(`${enemyData.name} approaches the register.`);
+      drawCards(5);
+      render();
+    }
+
+    function renderShop() {
+      ui.shopTitle.textContent = `Shop Before Round ${game.round}`;
+      ui.shopGrid.innerHTML = '';
+      for (const card of game.shop) {
+        const bought = card.bought;
+        const item = document.createElement('article');
+        item.className = 'shop-card';
+        item.innerHTML = `
+          <span>${card.type} · Cost ${card.cost}</span>
+          <h3>${card.name}</h3>
+          <p>${card.text}</p>
+          <button ${bought || game.gold < card.price ? 'disabled' : ''}>${bought ? 'Bought' : `Buy (${card.price}g)`}</button>
+        `;
+        item.querySelector('button').addEventListener('click', () => buyCard(card));
+        ui.shopGrid.appendChild(item);
+      }
+
+      ui.deckList.innerHTML = '';
+      game.deckList.forEach(card => {
+        const row = document.createElement('article');
+        row.className = 'deck-card';
+        row.innerHTML = `
+          <div><span>${card.type} · Cost ${card.cost}</span><h3>${card.name}</h3><p>${card.text}</p></div>
+          <button class="danger" ${game.deckList.length <= 5 || game.gold < game.removeCost ? 'disabled' : ''}>Remove (${game.removeCost}g)</button>
+        `;
+        row.querySelector('button').addEventListener('click', () => removeCard(card.id));
+        ui.deckList.appendChild(row);
+      });
+
+      ui.rerollButton.disabled = game.gold < 7;
+      ui.healButton.disabled = game.gold < 12 || game.player.hp >= game.player.maxHp;
+      const energyPrice = 45 + game.energyUpgrades * 25;
+      const healthPrice = 30 + game.healthUpgrades * 15;
+      ui.energyUpgradeButton.textContent = `⚡ +1 Max Energy (${energyPrice}g)`;
+      ui.energyUpgradeButton.disabled = game.gold < energyPrice || game.maxEnergy >= 6;
+      ui.healthUpgradeButton.textContent = `❤️ +8 Max HP (${healthPrice}g)`;
+      ui.healthUpgradeButton.disabled = game.gold < healthPrice;
+    }
+
+    function buyCard(card) {
+      if (card.bought || game.gold < card.price) return;
+      game.gold -= card.price;
+      card.bought = true;
+      game.deckList.push(cloneCard(card));
+      log(`Bought ${card.name}. It is now in your rotation.`);
+      renderShop();
+      render();
+    }
+
+    function removeCard(id) {
+      if (game.deckList.length <= 5 || game.gold < game.removeCost) return;
+      const index = game.deckList.findIndex(card => card.id === id);
+      if (index < 0) return;
+      const [removed] = game.deckList.splice(index, 1);
+      game.gold -= game.removeCost;
+      game.removeCost += 6;
+      log(`Removed ${removed.name}. Good riddance.`);
+      renderShop();
+      render();
+    }
+
+    function drawCards(count) {
+      for (let i = 0; i < count; i++) {
+        if (game.deck.length === 0) {
+          if (game.discard.length === 0) return;
+          game.deck = shuffle(game.discard);
+          game.discard = [];
+          log('You reshuffled your horrible decisions.');
+        }
+        if (game.hand.length < 8) game.hand.push(game.deck.pop());
+      }
+      render();
+    }
+
+    function playCard(id) {
+      if (game.over || game.inShop) return;
+      const index = game.hand.findIndex(card => card.id === id);
+      if (index < 0) return;
+      const card = game.hand[index];
+      if (card.cost > game.energy) {
+        log('Not enough energy. The card files a complaint.');
+        return;
+      }
+      game.energy -= card.cost;
+      game.combo += 1;
+      game.hand.splice(index, 1);
+      log(`Played ${card.name}.`);
+      card.play(game);
+      game.discard.push(card);
+      checkEnd();
+      render();
+    }
+
+    function hitEnemy(amount) {
+      let boosted = amount + Math.floor(game.combo / 3);
+      if (game.enemy.panic) boosted += game.enemy.panic;
+      const blocked = Math.min(game.enemy.block, boosted);
+      game.enemy.block -= blocked;
+      const damage = boosted - blocked;
+      game.enemy.hp = Math.max(0, game.enemy.hp - damage);
+      combatFeedback(document.querySelector('.enemy'), damage, false);
+      log(`Enemy takes ${damage} damage${blocked ? ` after ${blocked} block` : ''}.`);
+    }
+
+    function hitPlayer(amount) {
+      let incoming = amount;
+      if (game.player.panic) incoming += game.player.panic;
+      const blocked = Math.min(game.player.block, incoming);
+      game.player.block -= blocked;
+      const damage = incoming - blocked;
+      game.player.hp = Math.max(0, game.player.hp - damage);
+      combatFeedback(document.querySelector('.fighter:not(.enemy)'), damage, false);
+      log(`You take ${damage} damage${blocked ? ` after ${blocked} block` : ''}.`);
+    }
+
+    function gainBlock(who, amount) {
+      game[who].block += amount;
+      log(`${who === 'player' ? 'You gain' : 'Enemy gains'} ${amount} block.`);
+    }
+
+    function healPlayer(amount) {
+      const before = game.player.hp;
+      game.player.hp = Math.min(game.player.maxHp, game.player.hp + amount);
+      combatFeedback(document.querySelector('.fighter:not(.enemy)'), game.player.hp - before, true);
+      log(`You heal ${game.player.hp - before}.`);
+    }
+
+    function combatFeedback(target, amount, good) {
+      if (!target || amount <= 0) return;
+      target.classList.remove('hit', 'heal');
+      void target.offsetWidth;
+      target.classList.add(good ? 'heal' : 'hit');
+      const text = document.createElement('b');
+      text.className = `float-text ${good ? 'good' : ''}`;
+      text.textContent = `${good ? '+' : '−'}${amount}`;
+      target.appendChild(text);
+      setTimeout(() => { text.remove(); target.classList.remove('hit', 'heal'); }, 820);
+    }
+
+    function discardRandom() {
+      if (!game.hand.length) return;
+      const index = Math.floor(Math.random() * game.hand.length);
+      const [card] = game.hand.splice(index, 1);
+      game.discard.push(card);
+      log(`${card.name} got kicked into discard.`);
+    }
+
+    function pickIntent() {
+      const base = intents[Math.floor(Math.random() * intents.length)];
+      game.intent = { ...base };
+      if (game.intent.damage) game.intent.damage = Math.ceil(game.intent.damage * game.enemy.scale);
+      if (game.intent.block) game.intent.block = Math.ceil(game.intent.block * game.enemy.scale);
+      game.intent.labelText = game.intent.label
+        .replace('DAMAGE', game.intent.damage || 0)
+        .replace('BLOCK', game.intent.block || 0);
+    }
+
+    function enemyTurn() {
+      game.player.block = 0;
+      if (game.intent.block) gainBlock('enemy', game.intent.block);
+      if (game.intent.panic) {
+        game.player.panic += game.intent.panic;
+        log(`You gain ${game.intent.panic} panic.`);
+      }
+      if (game.intent.steal && game.nonsense > 0) {
+        game.nonsense -= game.intent.steal;
+        game.enemy.block += 5;
+        log('Enemy steals nonsense and turns it into block.');
+      }
+      if (game.intent.damage) {
+        const hits = game.intent.hits || 1;
+        for (let i = 0; i < hits; i++) hitPlayer(game.intent.damage);
+      }
+      checkEnd();
+      if (game.over) return;
+      game.turn += 1;
+      game.energy = game.maxEnergy;
+      game.enemy.block = Math.max(0, game.enemy.block - 3);
+      game.player.panic = Math.max(0, game.player.panic - 1);
+      game.enemy.panic = Math.max(0, game.enemy.panic - 1);
+      game.combo = 0;
+      while (game.hand.length) game.discard.push(game.hand.pop());
+      pickIntent();
+      drawCards(5);
+      log('New turn. The mall music gets worse.');
+      render();
+    }
+
+    function endTurn() {
+      if (game.over || game.inShop) return;
+      while (game.hand.length) game.discard.push(game.hand.pop());
+      log('You ended your turn with suspicious confidence.');
+      enemyTurn();
+    }
+
+    function checkEnd() {
+      if (game.enemy.hp <= 0) {
+        const reward = 18 + game.round * 7;
+        game.gold += reward;
+        best = Math.max(best, game.round);
+        localStorage.setItem('stupidCardShopBest', String(best));
+        if (game.round >= enemies.length) {
+          game.over = true;
+          showStart('You Beat The Mall', `You defeated every cursed employee and escaped with ${game.gold} gold. The food court is legally yours.`, 'Play Again');
+        } else {
+          game.round += 1;
+          openShop(`Round won. You gained ${reward} gold. Buy cards or remove trash before the next fight.`);
+        }
+      } else if (game.player.hp <= 0) {
+        game.over = true;
+        showStart('You Got Mall-Crushed', 'A kiosk employee sold your soul a phone case. Try a better deck.', 'Try Again');
+      }
+    }
+
+    function showStart(title, text, button) {
+      ui.startOverlay.querySelector('h1').textContent = title;
+      ui.startOverlay.querySelector('p').textContent = text;
+      ui.startButton.textContent = button;
+      ui.startOverlay.classList.remove('hidden');
+    }
+
+    function log(message) {
+      const line = document.createElement('div');
+      line.textContent = message;
+      ui.log.prepend(line);
+      while (ui.log.children.length > 20) ui.log.lastChild.remove();
+    }
+
+    function pct(value, max) {
+      return Math.max(0, Math.min(100, value / max * 100)) + '%';
+    }
+
+    function render() {
+      ui.round.textContent = game.round;
+      ui.turn.textContent = game.turn;
+      ui.energy.textContent = `${game.energy}/${game.maxEnergy}`;
+      ui.gold.textContent = game.gold;
+      ui.deck.textContent = game.deck.length || game.deckList.length;
+      ui.discard.textContent = game.discard.length;
+      ui.nonsense.textContent = game.nonsense;
+      ui.best.textContent = best || '-';
+      ui.playerHp.style.width = pct(game.player.hp, game.player.maxHp);
+      ui.enemyHp.style.width = pct(game.enemy.hp, game.enemy.maxHp);
+      ui.playerBlock.style.width = pct(Math.min(game.player.block, 36), 36);
+      ui.enemyBlock.style.width = pct(Math.min(game.enemy.block, 36), 36);
+      ui.playerHpText.textContent = `${game.player.hp}/${game.player.maxHp}`;
+      ui.enemyHpText.textContent = `${game.enemy.hp}/${game.enemy.maxHp}`;
+      ui.playerBlockText.textContent = game.player.block;
+      ui.enemyBlockText.textContent = game.enemy.block;
+      ui.playerBadges.textContent = game.player.panic ? `PANIC ${game.player.panic}` : '';
+      ui.enemyBadges.textContent = game.enemy.panic ? `PANIC ${game.enemy.panic}` : '';
+      ui.enemyName.textContent = game.enemy.name;
+      ui.enemyAvatar.textContent = game.enemy.avatar;
+      ui.intent.textContent = game.inShop ? 'Shopping phase' : game.intent.labelText || 'Thinking about receipts';
+      ui.drawButton.disabled = game.energy < 1 || game.over || game.inShop;
+      ui.endButton.disabled = game.over || game.inShop;
+      ui.hand.innerHTML = '';
+      game.hand.forEach((card, index) => {
+        const el = document.createElement('article');
+        el.className = `card ${card.cost > game.energy ? 'disabled' : ''}`;
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+        el.setAttribute('aria-label', `${card.name}, costs ${card.cost} energy. ${card.text}`);
+        el.dataset.rarity = card.price >= 27 ? 'legendary' : card.price >= 20 ? 'rare' : 'common';
+        el.innerHTML = `
+          <div class="cost">${card.cost}</div>
+          <h3>${card.name} <span class="hotkey">${index + 1}</span></h3>
+          <p>${card.text}</p>
+          <div class="tag">${card.type} · ${el.dataset.rarity}</div>
+        `;
+        el.addEventListener('click', () => playCard(card.id));
+        el.addEventListener('keydown', event => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); playCard(card.id); }
+        });
+        ui.hand.appendChild(el);
+      });
+    }
+
+    ui.startButton.addEventListener('click', startRun);
+    ui.startRoundButton.addEventListener('click', startRound);
+    ui.endButton.addEventListener('click', endTurn);
+    ui.restartButton.addEventListener('click', () => showStart('Restart?', 'Throw away this run and go back to the shop.', 'Restart Now'));
+    ui.drawButton.addEventListener('click', () => {
+      if (game.energy >= 1 && !game.over && !game.inShop) {
+        game.energy -= 1;
+        drawCards(1);
+        log('You bought one suspicious card draw.');
+      }
+    });
+    ui.rerollButton.addEventListener('click', () => {
+      if (game.gold < 7) return;
+      game.gold -= 7;
+      rollShop();
+      log('The shop shelf made a crunchy noise.');
+      renderShop();
+      render();
+    });
+    ui.healButton.addEventListener('click', () => {
+      if (game.gold < 12 || game.player.hp >= game.player.maxHp) return;
+      game.gold -= 12;
+      healPlayer(10);
+      renderShop();
+      render();
+    });
+    ui.energyUpgradeButton.addEventListener('click', () => {
+      const price = 45 + game.energyUpgrades * 25;
+      if (game.gold < price || game.maxEnergy >= 6) return;
+      game.gold -= price;
+      game.energyUpgrades += 1;
+      game.maxEnergy += 1;
+      game.energy = game.maxEnergy;
+      log(`Max energy upgraded to ${game.maxEnergy}. The food court fears you.`);
+      renderShop(); render();
+    });
+    ui.healthUpgradeButton.addEventListener('click', () => {
+      const price = 30 + game.healthUpgrades * 15;
+      if (game.gold < price) return;
+      game.gold -= price;
+      game.healthUpgrades += 1;
+      game.player.maxHp += 8;
+      game.player.hp += 8;
+      log(`Max HP increased to ${game.player.maxHp}. Mall vitamins worked.`);
+      renderShop(); render();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.target.matches('button, [role="button"]')) return;
+      const number = Number(event.key);
+      if (number >= 1 && number <= 8 && game.hand[number - 1]) playCard(game.hand[number - 1].id);
+      if (event.key.toLowerCase() === 'e') endTurn();
+      if (event.key.toLowerCase() === 'd' && !ui.drawButton.disabled) ui.drawButton.click();
+    });
+
+    render();
+  </script>
+</body>
+</html>

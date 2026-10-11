@@ -1,0 +1,1316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Moon Mart Mayhem</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7fbff;
+      --muted: #aebbd0;
+      --panel: rgba(8, 14, 24, 0.86);
+      --line: rgba(255, 255, 255, 0.18);
+      --green: #63f7a4;
+      --gold: #ffd45c;
+      --pink: #ff6b9f;
+      --blue: #65c8ff;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #060812;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      user-select: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: crosshair;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(101, 200, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 74% 10%, rgba(255, 107, 159, 0.14), transparent 24%),
+        radial-gradient(circle at 50% 95%, rgba(99, 247, 164, 0.14), transparent 28%),
+        #060812;
+    }
+
+    .hud {
+      position: fixed;
+      inset: 12px 12px auto 12px;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(74px, 1fr));
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: inset 0 1px rgba(255,255,255,0.08), 0 12px 32px rgba(0,0,0,0.28);
+      padding: 8px 10px;
+      min-height: 42px;
+    }
+
+    .pill span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .pill strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .shop {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(9, 16, 28, 0.9);
+      color: var(--ink);
+      min-height: 58px;
+      padding: 8px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: inset 0 1px rgba(255,255,255,0.08), 0 10px 26px rgba(0,0,0,0.22);
+    }
+
+    button span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    button:disabled {
+      color: #637086;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: rgba(3, 5, 12, 0.68);
+      backdrop-filter: blur(5px);
+    }
+
+    .panel {
+      width: min(660px, 100%);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(9, 15, 27, 0.94);
+      box-shadow: 0 22px 80px rgba(0,0,0,0.55);
+      padding: 22px;
+      text-align: center;
+    }
+
+    .panel h1 {
+      margin: 0 0 8px;
+      font-size: clamp(38px, 8vw, 74px);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .panel p {
+      margin: 8px auto;
+      max-width: 560px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .panel button {
+      width: min(230px, 100%);
+      margin-top: 16px;
+      border: 0;
+      background: var(--green);
+      color: #03120b;
+      font-size: 18px;
+    }
+
+    .gem-shop {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 6;
+      display: block;
+      width: min(430px, 92vw);
+      transform: translateX(105%);
+      transition: transform 180ms ease;
+      pointer-events: none;
+    }
+
+    .gem-shop.open {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .gem-panel {
+      height: 100%;
+      overflow: auto;
+      border: 1px solid rgba(245, 163, 255, 0.42);
+      border-right: 0;
+      border-radius: 8px 0 0 8px;
+      background: rgba(9, 15, 27, 0.96);
+      box-shadow: 0 22px 90px rgba(0,0,0,0.58);
+      padding: 18px;
+    }
+
+    .gem-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .gem-header h2 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 48px);
+      letter-spacing: 0;
+    }
+
+    .gem-header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .gem-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin: 10px 0;
+    }
+
+    .gem-tabs button {
+      min-height: 38px;
+      padding: 7px;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .gem-tabs button.active {
+      background: #f5a3ff;
+      color: #16051a;
+      border-color: #ffd7ff;
+    }
+
+    .featured-offer {
+      border: 1px solid rgba(255, 212, 92, 0.45);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 212, 92, 0.18), rgba(245, 163, 255, 0.14));
+      padding: 10px;
+      margin: 0 0 10px;
+    }
+
+    .featured-offer strong {
+      display: block;
+      color: var(--gold);
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .featured-offer span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .gem-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .gem-grid button {
+      min-height: 92px;
+      text-align: left;
+      background: linear-gradient(135deg, rgba(245, 163, 255, 0.18), rgba(101, 200, 255, 0.1));
+      border-color: rgba(245, 163, 255, 0.34);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gem-grid button.rare {
+      border-color: rgba(101, 200, 255, 0.58);
+      background: linear-gradient(135deg, rgba(101, 200, 255, 0.22), rgba(99, 247, 164, 0.08));
+    }
+
+    .gem-grid button.epic {
+      border-color: rgba(245, 163, 255, 0.68);
+      background: linear-gradient(135deg, rgba(245, 163, 255, 0.24), rgba(255, 107, 159, 0.12));
+    }
+
+    .gem-grid button.legendary {
+      border-color: rgba(255, 212, 92, 0.75);
+      background: linear-gradient(135deg, rgba(255, 212, 92, 0.25), rgba(245, 163, 255, 0.16));
+    }
+
+    .gem-grid button small {
+      display: inline-block;
+      margin-top: 8px;
+      color: #fff;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .close-gems {
+      width: 44px;
+      min-height: 38px;
+      font-size: 22px;
+      padding: 0;
+      text-align: center;
+    }
+
+    @media (max-width: 780px) {
+      .hud {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .shop {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      button {
+        min-height: 54px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div class="hud" aria-hidden="true">
+    <div class="pill"><span>Coins</span><strong id="coins">0</strong></div>
+    <div class="pill"><span>Snacks</span><strong id="snacks">0</strong></div>
+    <div class="pill"><span>Hype</span><strong id="hype">x1</strong></div>
+    <div class="pill"><span>Day</span><strong id="day">1</strong></div>
+    <div class="pill"><span>Goal</span><strong id="goal">500</strong></div>
+    <div class="pill"><span>Event</span><strong id="event">Calm</strong></div>
+    <div class="pill"><span>Location</span><strong id="location">Moon</strong></div>
+    <div class="pill"><span>Gems</span><strong id="gems">0</strong></div>
+  </div>
+
+  <div class="shop">
+    <button data-buy="oven">Buy Oven<span id="ovenCost">$25</span></button>
+    <button data-buy="bot">Hire Bot<span id="botCost">$60</span></button>
+    <button data-buy="sign">Neon Sign<span id="signCost">$90</span></button>
+    <button data-buy="shield">Moon Shield<span id="shieldCost">$130</span></button>
+    <button data-buy="location">Open Location<span id="locationCost">$450</span></button>
+    <button data-buy="gems">Space Gem Shop<span id="gemsCost">∞ gems</span></button>
+  </div>
+
+  <div class="gem-shop" id="gemShop">
+    <div class="gem-panel">
+      <div class="gem-header">
+        <div>
+          <h2>Space Gem Shop</h2>
+          <p>Real cash shop later. Gems are infinite for testing, but prices are shown.</p>
+        </div>
+        <button class="close-gems" id="closeGems">x</button>
+      </div>
+      <div class="featured-offer">
+        <strong>Balance: ∞ Space Gems</strong>
+        <span>Prices are real in-game labels. Purchases stack and show owned counts.</span>
+      </div>
+      <div class="gem-grid" id="gemGrid"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="panel">
+      <h1>Moon Mart Mayhem</h1>
+      <p>Run a snack-shop empire across space. Serve VIPs, open new locations, grab mystery crates, and zap thieves before they steal your stock.</p>
+      <p>Click/tap customers, thieves, and crates. Space makes a snack burst. Random events make each day wonderfully unstable.</p>
+      <button id="start">Open Mart</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const coinsEl = document.getElementById('coins');
+    const snacksEl = document.getElementById('snacks');
+    const hypeEl = document.getElementById('hype');
+    const dayEl = document.getElementById('day');
+    const goalEl = document.getElementById('goal');
+    const eventEl = document.getElementById('event');
+    const locationEl = document.getElementById('location');
+    const gemsEl = document.getElementById('gems');
+    const gemShop = document.getElementById('gemShop');
+    const gemGrid = document.getElementById('gemGrid');
+    const shopButtons = Array.from(document.querySelectorAll('[data-buy]'));
+
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let running = false;
+    let last = 0;
+    let coins = 0;
+    let snacks = 12;
+    let hype = 1;
+    let day = 1;
+    let goal = 500;
+    let gems = 0;
+    let combo = 0;
+    let comboTimer = 0;
+    let boostTimer = 0;
+    let slowTimer = 0;
+    let cashStormTimer = 0;
+    let guardTimer = 0;
+    let eventTimer = 0;
+    let eventName = 'Calm';
+    let eventTick = 0;
+    let branchIncomeTimer = 0;
+    let stockTimer = 0;
+    let customerTimer = 0;
+    let thiefTimer = 0;
+    let burstTimer = 0;
+    let shake = 0;
+    let upgrades = { oven: 0, bot: 0, sign: 0, shield: 0, location: 0 };
+    let premiumOwned = {};
+    let activeGemCategory = 'featured';
+    let customers = [];
+    let thieves = [];
+    let crates = [];
+    let helpers = [];
+    let lasers = [];
+    let bits = [];
+    let texts = [];
+    let stars = [];
+
+    const locations = [
+      { name: 'Moon Mart', short: 'Moon', cost: 0, coinRate: 0, stockRate: 0, color: '#65c8ff' },
+      { name: 'Mars Mall', short: 'Mars', cost: 450, coinRate: 4, stockRate: 1, color: '#ff9f6e' },
+      { name: 'Saturn Station', short: 'Saturn', cost: 1100, coinRate: 9, stockRate: 2, color: '#ffd45c' },
+      { name: 'Neptune Night Market', short: 'Neptune', cost: 2500, coinRate: 18, stockRate: 3, color: '#9ee8ff' },
+      { name: 'Pluto Pop-Up', short: 'Pluto', cost: 5200, coinRate: 36, stockRate: 5, color: '#f5a3ff' }
+    ];
+
+    const costs = {
+      oven: () => Math.floor(25 * Math.pow(1.55, upgrades.oven)),
+      bot: () => Math.floor(60 * Math.pow(1.7, upgrades.bot)),
+      sign: () => Math.floor(90 * Math.pow(1.85, upgrades.sign)),
+      shield: () => Math.floor(130 * Math.pow(1.9, upgrades.shield)),
+      location: () => {
+        const next = locations[upgrades.location + 1];
+        return next ? next.cost : Infinity;
+      },
+      gems: () => Infinity
+    };
+
+    const premiumItems = [
+      { id: 'cashstorm', name: 'Cash Storm', cost: 8, cat: 'money', rarity: 'rare', desc: 'Coins now plus 2x sales.' },
+      { id: 'autofill', name: 'Auto Stock', cost: 6, cat: 'stock', rarity: 'rare', desc: 'Huge snack restock.' },
+      { id: 'guards', name: 'Mega Guards', cost: 10, cat: 'defense', rarity: 'epic', desc: 'Deletes thieves and guards longer.' },
+      { id: 'gemcrate', name: 'Crate Rain', cost: 7, cat: 'stock', rarity: 'rare', desc: 'Drops 8 mystery crates.' },
+      { id: 'vipsummon', name: 'VIP Parade', cost: 9, cat: 'money', rarity: 'epic', desc: 'Summons rich VIPs.' },
+      { id: 'skipday', name: 'Skip Day', cost: 12, cat: 'empire', rarity: 'epic', desc: 'Instantly clears the day goal.' },
+      { id: 'unlockbranch', name: 'Branch Unlock', cost: 15, cat: 'empire', rarity: 'legendary', desc: 'Opens the next location.' },
+      { id: 'botarmy', name: 'Bot Army', cost: 11, cat: 'defense', rarity: 'epic', desc: '+5 bot levels.' },
+      { id: 'hypebeast', name: 'Hype Beast', cost: 8, cat: 'money', rarity: 'rare', desc: 'Max hype and 2x sales.' },
+      { id: 'freezeall', name: 'Freeze All', cost: 5, cat: 'defense', rarity: 'rare', desc: 'Long thief freeze.' },
+      { id: 'zapall', name: 'Orbital Zap', cost: 9, cat: 'defense', rarity: 'epic', desc: 'Blasts every thief.' },
+      { id: 'snacknuke', name: 'Snack Nuke', cost: 10, cat: 'defense', rarity: 'epic', desc: 'Burst without cooldown.' },
+      { id: 'thiefdelete', name: 'No Thieves', cost: 14, cat: 'defense', rarity: 'legendary', desc: 'Deletes thieves and delays raids.' },
+      { id: 'maxstock', name: 'Snack Vault', cost: 7, cat: 'stock', rarity: 'rare', desc: 'Massive snack stock.' },
+      { id: 'goalsmash', name: 'Goal Smash', cost: 12, cat: 'money', rarity: 'epic', desc: 'Pays most of the goal.' },
+      { id: 'customerrush', name: 'Customer Flood', cost: 6, cat: 'money', rarity: 'rare', desc: 'Spawns many customers.' },
+      { id: 'shieldwall', name: 'Shield Wall', cost: 7, cat: 'defense', rarity: 'rare', desc: '+4 shield levels.' },
+      { id: 'ovenboost', name: 'Oven Overdrive', cost: 8, cat: 'stock', rarity: 'rare', desc: '+5 oven levels.' },
+      { id: 'signboost', name: 'Ad Takeover', cost: 8, cat: 'money', rarity: 'rare', desc: '+5 sign levels.' },
+      { id: 'instantempire', name: 'Instant Empire', cost: 30, cat: 'empire', rarity: 'legendary', desc: 'Opens every location.' },
+      { id: 'krish', name: 'Summon Krish', cost: 13, cat: 'money', rarity: 'legendary', desc: 'Auto-serves customers.' },
+      { id: 'kush', name: 'Summon Kush', cost: 13, cat: 'defense', rarity: 'legendary', desc: 'Auto-zaps thieves.' }
+    ];
+
+    function resize() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      stars = Array.from({ length: 150 }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: rand(0.5, 2),
+        a: rand(0.12, 0.62)
+      }));
+    }
+
+    function reset() {
+      coins = 0;
+      snacks = 12;
+      hype = 1;
+      day = 1;
+      goal = 500;
+      gems = Infinity;
+      combo = 0;
+      comboTimer = 0;
+      boostTimer = 0;
+      slowTimer = 0;
+      cashStormTimer = 0;
+      guardTimer = 0;
+      eventTimer = 8;
+      eventName = 'Calm';
+      eventTick = 0;
+      branchIncomeTimer = 2;
+      stockTimer = 0;
+      customerTimer = 0.6;
+      thiefTimer = 5;
+      burstTimer = 0;
+      shake = 0;
+      upgrades = { oven: 0, bot: 0, sign: 0, shield: 0, location: 0, gemPack: 0 };
+      customers = [];
+      thieves = [];
+      crates = [];
+      lasers = [];
+      bits = [];
+      texts = [];
+      updateHud();
+    }
+
+    function start() {
+      reset();
+      running = true;
+      overlay.style.display = 'none';
+      last = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function renderGemShop() {
+      const tabs = [
+        ['featured', 'Featured'],
+        ['money', 'Money'],
+        ['stock', 'Stock'],
+        ['defense', 'Defense'],
+        ['empire', 'Empire']
+      ];
+      const featured = premiumItems.filter(item => item.rarity === 'legendary' || item.id === 'vipsummon').slice(0, 4);
+      const shown = activeGemCategory === 'featured'
+        ? featured
+        : premiumItems.filter(item => item.cat === activeGemCategory);
+      gemGrid.innerHTML = `
+        <div class="gem-tabs">
+          ${tabs.map(([id, label]) => `<button class="${activeGemCategory === id ? 'active' : ''}" data-gem-tab="${id}">${label}</button>`).join('')}
+        </div>
+        <div class="featured-offer">
+          <strong>${featured[0].name} Bundle</strong>
+          <span>${featured[0].cost} gems - Featured chaos pick. Owned ${premiumOwned[featured[0].id] || 0}.</span>
+        </div>
+        ${shown.map(item => `
+          <button class="${item.rarity}" data-premium="${item.id}">
+            ${item.name}
+            <span>${item.cost} gems - ${item.desc}</span>
+            <small>${item.rarity} | owned ${premiumOwned[item.id] || 0}</small>
+          </button>
+        `).join('')}
+      `;
+      gemGrid.querySelectorAll('[data-gem-tab]').forEach(button => {
+        button.addEventListener('click', () => {
+          activeGemCategory = button.dataset.gemTab;
+          renderGemShop();
+        });
+      });
+      gemGrid.querySelectorAll('[data-premium]').forEach(button => {
+        button.addEventListener('click', () => buyPremium(button.dataset.premium));
+      });
+    }
+
+    function openGemShop() {
+      renderGemShop();
+      gemShop.classList.add('open');
+    }
+
+    function closeGemShop() {
+      gemShop.classList.remove('open');
+    }
+
+    function addText(x, y, text, color) {
+      texts.push({ x, y, text, color, life: 1 });
+    }
+
+    function addBits(x, y, color, count, speed) {
+      for (let i = 0; i < count; i++) {
+        const angle = rand(0, Math.PI * 2);
+        const v = rand(speed * 0.25, speed);
+        bits.push({
+          x,
+          y,
+          vx: Math.cos(angle) * v,
+          vy: Math.sin(angle) * v,
+          r: rand(2, 6),
+          color,
+          life: rand(0.32, 0.85),
+          maxLife: 0.85
+        });
+      }
+    }
+
+    function spawnCustomer() {
+      const vip = Math.random() < 0.08 + upgrades.sign * 0.01;
+      customers.push({
+        x: rand(70, width - 70),
+        y: -30,
+        r: vip ? 30 : rand(15, 24),
+        speed: (vip ? rand(42, 58) : rand(58, 92)) + day * 2,
+        value: Math.floor((vip ? 46 : 8 + upgrades.sign * 4 + day * 2) * hype),
+        snackNeed: vip ? 4 : Math.random() > 0.78 ? 2 : 1,
+        color: vip ? '#ffd45c' : Math.random() > 0.5 ? '#65c8ff' : '#63f7a4',
+        vip,
+        wiggle: rand(0, Math.PI * 2)
+      });
+    }
+
+    function spawnThief() {
+      thieves.push({
+        x: Math.random() > 0.5 ? -32 : width + 32,
+        y: rand(110, height - 160),
+        r: 19 + day * 0.4,
+        speed: 82 + day * 6,
+        hp: 2 + Math.floor(day / 3),
+        maxHp: 2 + Math.floor(day / 3),
+        color: '#ff6b9f',
+        steal: 5 + day + upgrades.shield * -1
+      });
+    }
+
+    function spawnCrate(x = rand(80, width - 80), y = rand(120, height - 180)) {
+      const types = ['Stock', 'Coins', 'Hype', 'Freeze', 'Zap', 'Rush'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      const colors = {
+        Stock: '#63f7a4',
+        Coins: '#ffd45c',
+        Hype: '#65c8ff',
+        Freeze: '#9ee8ff',
+        Zap: '#ff6b9f',
+        Rush: '#ff9f6e'
+      };
+      crates.push({
+        x,
+        y,
+        r: 18,
+        type,
+        color: colors[type],
+        life: 11,
+        spin: rand(0, Math.PI * 2)
+      });
+    }
+
+    function collectCrate(crate) {
+      crate.dead = true;
+      if (crate.type === 'Stock') {
+        snacks += 24 + upgrades.oven * 5;
+      } else if (crate.type === 'Coins') {
+        coins += 80 + day * 18;
+      } else if (crate.type === 'Hype') {
+        boostTimer = 9;
+        hype = clamp(hype + 1.5, 1, 10);
+      } else if (crate.type === 'Freeze') {
+        slowTimer = 7;
+      } else if (crate.type === 'Zap') {
+        thieves.forEach(thief => {
+          thief.hp -= 4 + upgrades.bot;
+          if (thief.hp <= 0) defeatThief(thief, 'ZAP');
+        });
+        lasers.push({ x1: width / 2, y1: height - 104, x2: crate.x, y2: crate.y, life: 0.18 });
+      } else if (crate.type === 'Rush') {
+        for (let i = 0; i < 6; i++) spawnCustomer();
+      }
+      addText(crate.x, crate.y, crate.type.toUpperCase(), crate.color);
+      addBits(crate.x, crate.y, crate.color, 44, 430);
+      shake = Math.max(shake, 12);
+      updateHud();
+    }
+
+    function triggerEvent() {
+      const events = ['Solar Sale', 'Snack Rush', 'Raider Alarm', 'Meteor Tips'];
+      eventName = events[Math.floor(Math.random() * events.length)];
+      eventTimer = rand(8, 12);
+      eventTick = 0.5;
+      addText(width / 2, height * 0.28, eventName.toUpperCase(), '#ffd45c');
+      addBits(width / 2, height * 0.3, '#ffd45c', 62, 470);
+      if (eventName === 'Snack Rush') {
+        for (let i = 0; i < 5; i++) spawnCustomer();
+      } else if (eventName === 'Raider Alarm') {
+        for (let i = 0; i < 3; i++) spawnThief();
+      } else if (eventName === 'Meteor Tips') {
+        spawnCrate();
+        spawnCrate();
+      }
+      updateHud();
+    }
+
+    function buy(type) {
+      const cost = costs[type]();
+      if (type === 'gems') {
+        openGemShop();
+        return;
+      }
+      if (coins < cost) return;
+      coins -= cost;
+      upgrades[type] += 1;
+      if (type === 'location') {
+        const place = locations[upgrades.location];
+        snacks += 30 + place.stockRate * 8;
+        hype = clamp(hype + 0.9, 1, 10);
+        addText(width / 2, height * 0.42, `OPENED ${place.name.toUpperCase()}`, place.color);
+        addBits(width / 2, height * 0.45, place.color, 70, 520);
+        shake = Math.max(shake, 18);
+      } else {
+        addText(width / 2, height * 0.5, `${type.toUpperCase()} +1`, '#ffd45c');
+        addBits(width / 2, height * 0.5, '#ffd45c', 30, 270);
+      }
+      updateHud();
+    }
+
+    function buyPremium(type) {
+      const item = premiumItems.find(entry => entry.id === type);
+      if (!item) return;
+      const cost = item.cost;
+      if (gems < cost) return;
+      if (Number.isFinite(gems)) gems -= cost;
+      premiumOwned[type] = (premiumOwned[type] || 0) + 1;
+      if (type === 'cashstorm') {
+        cashStormTimer = 12;
+        coins += 250 + day * 45;
+        boostTimer = Math.max(boostTimer, 12);
+        addText(width / 2, height * 0.32, 'P2W CASH STORM', '#f5a3ff');
+      } else if (type === 'autofill') {
+        snacks += 120 + upgrades.oven * 15;
+        hype = clamp(hype + 1.2, 1, 10);
+        addText(width / 2, height * 0.32, 'PREMIUM STOCK DROP', '#f5a3ff');
+      } else if (type === 'guards') {
+        guardTimer = 16;
+        thieves.forEach(thief => defeatThief(thief, 'GUARD'));
+        addText(width / 2, height * 0.32, 'MEGA GUARDS ONLINE', '#f5a3ff');
+      } else if (type === 'gemcrate') {
+        for (let i = 0; i < 8; i++) spawnCrate(rand(80, width - 80), rand(110, height - 190));
+        addText(width / 2, height * 0.32, 'CRATE RAIN', '#f5a3ff');
+      } else if (type === 'vipsummon') {
+        for (let i = 0; i < 10; i++) {
+          customers.push({
+            x: rand(70, width - 70),
+            y: rand(-220, -30),
+            r: 30,
+            speed: rand(42, 58) + day * 2,
+            value: Math.floor((70 + day * 4) * hype),
+            snackNeed: 4,
+            color: '#ffd45c',
+            vip: true,
+            wiggle: rand(0, Math.PI * 2)
+          });
+        }
+        addText(width / 2, height * 0.32, 'VIP PARADE', '#f5a3ff');
+      } else if (type === 'skipday') {
+        coins = Math.max(coins, goal);
+        nextDay();
+        addText(width / 2, height * 0.32, 'DAY SKIPPED', '#f5a3ff');
+      } else if (type === 'unlockbranch') {
+        if (upgrades.location < locations.length - 1) {
+          upgrades.location += 1;
+          const place = locations[upgrades.location];
+          snacks += 50 + place.stockRate * 10;
+          addText(width / 2, height * 0.32, `UNLOCKED ${place.short.toUpperCase()}`, place.color);
+        } else {
+          addText(width / 2, height * 0.32, 'ALL BRANCHES OPEN', '#f5a3ff');
+        }
+      } else if (type === 'botarmy') {
+        upgrades.bot += 5;
+        thieves.forEach(thief => zap(thief));
+        addText(width / 2, height * 0.32, '+5 BOTS', '#f5a3ff');
+      } else if (type === 'hypebeast') {
+        hype = 10;
+        boostTimer = Math.max(boostTimer, 18);
+        addText(width / 2, height * 0.32, 'MAX HYPE', '#f5a3ff');
+      } else if (type === 'freezeall') {
+        slowTimer = 18;
+        addText(width / 2, height * 0.32, 'FREEZE ALL', '#f5a3ff');
+      } else if (type === 'zapall') {
+        thieves.forEach(thief => defeatThief(thief, 'ORBITAL'));
+        lasers.push({ x1: width / 2, y1: 40, x2: width / 2, y2: height - 100, life: 0.24 });
+        addText(width / 2, height * 0.32, 'ORBITAL ZAP', '#f5a3ff');
+      } else if (type === 'snacknuke') {
+        burstTimer = 0;
+        snacks += 4;
+        snackBurst();
+        addText(width / 2, height * 0.32, 'SNACK NUKE', '#f5a3ff');
+      } else if (type === 'thiefdelete') {
+        thieves.forEach(thief => defeatThief(thief, 'DELETED'));
+        thiefTimer = 22;
+        addText(width / 2, height * 0.32, 'NO THIEVES', '#f5a3ff');
+      } else if (type === 'maxstock') {
+        snacks += 500;
+        addText(width / 2, height * 0.32, '+500 SNACKS', '#f5a3ff');
+      } else if (type === 'goalsmash') {
+        coins += Math.ceil(goal * 0.75);
+        if (coins >= goal) nextDay();
+        addText(width / 2, height * 0.32, 'GOAL SMASH', '#f5a3ff');
+      } else if (type === 'customerrush') {
+        for (let i = 0; i < 24; i++) spawnCustomer();
+        addText(width / 2, height * 0.32, 'CUSTOMER FLOOD', '#f5a3ff');
+      } else if (type === 'shieldwall') {
+        upgrades.shield += 4;
+        slowTimer = Math.max(slowTimer, 5);
+        addText(width / 2, height * 0.32, '+4 SHIELDS', '#f5a3ff');
+      } else if (type === 'ovenboost') {
+        upgrades.oven += 5;
+        snacks += 100;
+        addText(width / 2, height * 0.32, '+5 OVENS', '#f5a3ff');
+      } else if (type === 'signboost') {
+        upgrades.sign += 5;
+        hype = clamp(hype + 2, 1, 10);
+        addText(width / 2, height * 0.32, '+5 SIGNS', '#f5a3ff');
+      } else if (type === 'instantempire') {
+        upgrades.location = locations.length - 1;
+        coins += 2500;
+        snacks += 800;
+        hype = 10;
+        addText(width / 2, height * 0.32, 'INSTANT EMPIRE', '#f5a3ff');
+      }
+      addBits(width / 2, height * 0.36, '#f5a3ff', 80, 560);
+      addText(width / 2, height * 0.24, `BOUGHT ${item.name.toUpperCase()} x${premiumOwned[type]}`, '#f5a3ff');
+      shake = Math.max(shake, 18);
+      updateHud();
+      renderGemShop();
+    }
+
+    function sellTo(customer) {
+      if (snacks < customer.snackNeed) {
+        addText(customer.x, customer.y, 'NO STOCK', '#ff6b9f');
+        return;
+      }
+      snacks -= customer.snackNeed;
+      combo += 1;
+      comboTimer = 3.2;
+      const eventBonus = eventName === 'Solar Sale' && eventTimer > 0 ? 2 : 1;
+      const boostBonus = boostTimer > 0 ? 2 : 1;
+      const comboBonus = 1 + Math.min(combo, 25) * 0.045;
+      const locationBonus = 1 + upgrades.location * 0.12;
+      const earned = Math.floor(customer.value * comboBonus * eventBonus * boostBonus * locationBonus);
+      coins += earned;
+      hype = clamp(hype + 0.08 + upgrades.sign * 0.02, 1, 8);
+      addText(customer.x, customer.y, customer.vip ? `VIP +$${earned}` : `+$${earned} x${combo}`, customer.vip ? '#ffd45c' : '#63f7a4');
+      addBits(customer.x, customer.y, customer.color, 22, 260);
+      if (customer.vip || Math.random() < 0.08) spawnCrate(customer.x, customer.y);
+      customer.dead = true;
+      shake = Math.max(shake, 4);
+      if (coins >= goal) nextDay();
+      updateHud();
+    }
+
+    function defeatThief(thief, label = 'BOUNTY') {
+      if (thief.dead) return;
+      const bounty = 18 + day * 4 + upgrades.shield * 4;
+      coins += bounty;
+      thief.dead = true;
+      addText(thief.x, thief.y, `${label} $${bounty}`, '#ffd45c');
+      addBits(thief.x, thief.y, '#ffd45c', 28, 360);
+    }
+
+    function zap(thief) {
+      thief.hp -= 1 + upgrades.bot * 0.25;
+      lasers.push({
+        x1: width / 2,
+        y1: height - 104,
+        x2: thief.x,
+        y2: thief.y,
+        life: 0.12
+      });
+      addBits(thief.x, thief.y, '#ff6b9f', 10, 210);
+      shake = Math.max(shake, 5);
+      if (thief.hp <= 0) {
+        defeatThief(thief);
+      }
+      updateHud();
+    }
+
+    function snackBurst() {
+      if (burstTimer > 0 || snacks < 4) return;
+      snacks -= 4;
+      burstTimer = 3.5;
+      customers.forEach(customer => {
+        if (Math.hypot(customer.x - width / 2, customer.y - height * 0.56) < 260) sellTo(customer);
+      });
+      thieves.forEach(thief => {
+        if (Math.hypot(thief.x - width / 2, thief.y - height * 0.56) < 230) {
+          thief.hp -= 2;
+          if (thief.hp <= 0) defeatThief(thief, 'BURST');
+        }
+      });
+      addText(width / 2, height * 0.48, 'SNACK BURST', '#ffd45c');
+      addBits(width / 2, height * 0.55, '#ffd45c', 58, 520);
+      shake = Math.max(shake, 16);
+      updateHud();
+    }
+
+    function nextDay() {
+      day += 1;
+      goal = Math.floor(goal * 1.7 + 180);
+      snacks += 20 + upgrades.oven * 8;
+      hype = clamp(hype + 0.5, 1, 8);
+      spawnCrate(width / 2 + rand(-160, 160), height * 0.46);
+      addText(width / 2, height * 0.26, `DAY ${day}`, '#65c8ff');
+      addBits(width / 2, height * 0.3, '#65c8ff', 80, 480);
+      customerTimer = 0.4;
+      thiefTimer = Math.max(1.5, 4.5 - day * 0.14);
+    }
+
+    function gameOver() {
+      running = false;
+      const bestDay = Math.max(Number(localStorage.getItem('moon-mart-best-day') || 0), day);
+      localStorage.setItem('moon-mart-best-day', String(bestDay));
+      overlay.innerHTML = `
+        <div class="panel">
+          <h1>Mart Closed</h1>
+          <p>You reached day ${day} with $${Math.floor(coins)} and ${snacks} snacks left. Best day: ${bestDay}.</p>
+          <p>Try a new layout: ovens for stock, bots for thief damage, signs for money, shields for safer raids.</p>
+          <button id="again">Open Again</button>
+        </div>
+      `;
+      document.getElementById('again').addEventListener('click', start);
+      overlay.style.display = 'grid';
+    }
+
+    function updateHud() {
+      coinsEl.textContent = `$${Math.floor(coins)}`;
+      snacksEl.textContent = snacks;
+      gemsEl.textContent = Number.isFinite(gems) ? gems : '∞';
+      hypeEl.textContent = `x${hype.toFixed(1)}`;
+      dayEl.textContent = day;
+      goalEl.textContent = `$${goal}`;
+      eventEl.textContent = eventTimer > 0 ? eventName : 'Calm';
+      locationEl.textContent = locations[upgrades.location].short;
+      document.getElementById('ovenCost').textContent = `$${costs.oven()}`;
+      document.getElementById('botCost').textContent = `$${costs.bot()}`;
+      document.getElementById('signCost').textContent = `$${costs.sign()}`;
+      document.getElementById('shieldCost').textContent = `$${costs.shield()}`;
+      const nextLocation = locations[upgrades.location + 1];
+      document.getElementById('locationCost').textContent = nextLocation ? `$${nextLocation.cost}` : 'MAX';
+      document.getElementById('gemsCost').textContent = Number.isFinite(gems) ? `$${costs.gems()} = 5` : '∞ gems';
+      shopButtons.forEach(button => {
+        const price = costs[button.dataset.buy]();
+        button.disabled = button.dataset.buy !== 'gems' && (!Number.isFinite(price) || coins < price);
+      });
+    }
+
+    function update(dt) {
+      stockTimer -= dt;
+      customerTimer -= dt;
+      thiefTimer -= dt;
+      comboTimer = Math.max(0, comboTimer - dt);
+      boostTimer = Math.max(0, boostTimer - dt);
+      slowTimer = Math.max(0, slowTimer - dt);
+      eventTimer -= dt;
+      eventTick -= dt;
+      branchIncomeTimer -= dt;
+      burstTimer = Math.max(0, burstTimer - dt);
+      hype = clamp(hype - dt * 0.035, 1, 8);
+      if (comboTimer <= 0) combo = 0;
+
+      if (eventName === 'Calm') {
+        if (eventTimer <= 0) triggerEvent();
+      } else if (eventTimer <= 0) {
+        eventName = 'Calm';
+        eventTimer = rand(13, 18);
+        addText(width / 2, height * 0.28, 'CALM AGAIN', '#65c8ff');
+      }
+
+      if (eventName !== 'Calm' && eventTick <= 0) {
+        eventTick = 1;
+        if (eventName === 'Meteor Tips') {
+          coins += 8 + day * 3;
+          addText(rand(80, width - 80), rand(100, height - 190), '+TIP', '#ffd45c');
+          if (Math.random() < 0.18) spawnCrate();
+        } else if (eventName === 'Raider Alarm') {
+          spawnThief();
+        } else if (eventName === 'Snack Rush') {
+          spawnCustomer();
+        }
+      }
+
+      if (stockTimer <= 0) {
+        snacks += 1 + upgrades.oven + Math.floor(upgrades.bot / 2) + Math.floor(upgrades.location / 2);
+        stockTimer = Math.max(0.35, 1.35 - upgrades.oven * 0.09);
+      }
+
+      if (branchIncomeTimer <= 0 && upgrades.location > 0) {
+        const opened = locations.slice(1, upgrades.location + 1);
+        const branchCoins = opened.reduce((sum, place) => sum + place.coinRate, 0);
+        const branchSnacks = opened.reduce((sum, place) => sum + place.stockRate, 0);
+        coins += branchCoins;
+        snacks += branchSnacks;
+        addText(width - 110, height - 132, `BRANCH +$${branchCoins}`, '#ffd45c');
+        branchIncomeTimer = 4;
+      }
+
+      if (customerTimer <= 0) {
+        spawnCustomer();
+        const rush = eventName === 'Snack Rush' && eventTimer > 0 ? 0.48 : 1;
+        customerTimer = Math.max(0.24, (1.3 - day * 0.035 - upgrades.sign * 0.045) * rush);
+      }
+
+      if (thiefTimer <= 0) {
+        spawnThief();
+        thiefTimer = Math.max(1, 6 - day * 0.22 - upgrades.sign * 0.08);
+      }
+
+      customers.forEach(customer => {
+        customer.y += customer.speed * dt;
+        customer.x += Math.sin(performance.now() / 240 + customer.wiggle) * 22 * dt;
+        if (customer.y > height - 110) sellTo(customer);
+      });
+
+      thieves.forEach(thief => {
+        const targetX = width / 2;
+        const targetY = height - 102;
+        const angle = Math.atan2(targetY - thief.y, targetX - thief.x);
+        const slow = slowTimer > 0 ? 0.35 : 1;
+        thief.x += Math.cos(angle) * thief.speed * slow * dt;
+        thief.y += Math.sin(angle) * thief.speed * slow * dt;
+        if (Math.hypot(thief.x - targetX, thief.y - targetY) < 34) {
+          const stolen = Math.max(1, Math.floor(thief.steal));
+          snacks = Math.max(0, snacks - stolen);
+          hype = Math.max(1, hype - 0.35);
+          thief.dead = true;
+          addText(thief.x, thief.y, `-${stolen} SNACKS`, '#ff6b9f');
+          addBits(thief.x, thief.y, '#ff6b9f', 24, 280);
+          shake = Math.max(shake, 12);
+          if (snacks <= 0 && coins < 25) gameOver();
+        }
+      });
+
+      if (upgrades.bot > 0 && thieves.length) {
+        const fireChance = upgrades.bot * dt * 1.7;
+        if (Math.random() < fireChance) {
+          const thief = thieves[Math.floor(Math.random() * thieves.length)];
+          if (thief && !thief.dead) zap(thief);
+        }
+      }
+
+      customers = customers.filter(customer => !customer.dead && customer.y < height + 50);
+      thieves = thieves.filter(thief => !thief.dead);
+
+      crates.forEach(crate => {
+        crate.life -= dt;
+        crate.spin += dt * 3;
+      });
+      crates = crates.filter(crate => !crate.dead && crate.life > 0);
+
+      lasers.forEach(laser => laser.life -= dt);
+      lasers = lasers.filter(laser => laser.life > 0);
+
+      bits.forEach(bit => {
+        bit.x += bit.vx * dt;
+        bit.y += bit.vy * dt;
+        bit.vx *= 0.97;
+        bit.vy *= 0.97;
+        bit.life -= dt;
+      });
+      bits = bits.filter(bit => bit.life > 0);
+
+      texts.forEach(text => {
+        text.y -= 44 * dt;
+        text.life -= dt;
+      });
+      texts = texts.filter(text => text.life > 0);
+      shake = Math.max(0, shake - dt * 28);
+      updateHud();
+    }
+
+    function drawCounter() {
+      const cx = width / 2;
+      const y = height - 105;
+      ctx.fillStyle = '#182335';
+      ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(cx - 150, y - 28, 300, 74, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffd45c';
+      ctx.font = '900 20px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('MOON MART', cx, y + 4);
+
+      for (let i = 0; i < Math.min(snacks, 18); i++) {
+        const x = cx - 128 + (i % 9) * 32;
+        const sy = y + 22 + Math.floor(i / 9) * 12;
+        ctx.fillStyle = i % 2 ? '#63f7a4' : '#65c8ff';
+        ctx.beginPath();
+        ctx.arc(x, sy, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawBranches() {
+      const opened = locations.slice(1, upgrades.location + 1);
+      opened.forEach((place, index) => {
+        const x = 70 + index * 92;
+        const y = height - 118;
+        ctx.save();
+        ctx.fillStyle = 'rgba(8,14,24,0.92)';
+        ctx.strokeStyle = place.color;
+        ctx.shadowColor = place.color;
+        ctx.shadowBlur = 14;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(x - 28, y - 34, 56, 42, 7);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = place.color;
+        ctx.font = '900 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(place.short.toUpperCase(), x, y - 12);
+        ctx.fillStyle = '#f7fbff';
+        ctx.fillRect(x - 16, y - 4, 10, 12);
+        ctx.fillRect(x + 6, y - 4, 10, 12);
+        ctx.restore();
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+      const sx = rand(-shake, shake);
+      const sy = rand(-shake, shake);
+      ctx.save();
+      ctx.translate(sx, sy);
+
+      stars.forEach(star => {
+        ctx.globalAlpha = star.a;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = '#11192a';
+      ctx.fillRect(0, height - 80, width, 80);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      for (let x = 0; x < width; x += 42) {
+        ctx.beginPath();
+        ctx.moveTo(x, height - 80);
+        ctx.lineTo(x + 36, height);
+        ctx.stroke();
+      }
+
+      drawCounter();
+      drawBranches();
+
+      crates.forEach(crate => {
+        ctx.save();
+        ctx.translate(crate.x, crate.y);
+        ctx.rotate(crate.spin);
+        ctx.globalAlpha = clamp(crate.life, 0, 1);
+        ctx.fillStyle = crate.color;
+        ctx.shadowColor = crate.color;
+        ctx.shadowBlur = 20;
+        ctx.fillRect(-crate.r, -crate.r, crate.r * 2, crate.r * 2);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-crate.r, -crate.r, crate.r * 2, crate.r * 2);
+        ctx.rotate(-crate.spin);
+        ctx.fillStyle = '#07101b';
+        ctx.font = '900 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('?', 0, 4);
+        ctx.restore();
+      });
+
+      customers.forEach(customer => {
+        ctx.save();
+        ctx.translate(customer.x, customer.y);
+        ctx.fillStyle = customer.color;
+        ctx.shadowColor = customer.color;
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.arc(0, 0, customer.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#07101b';
+        ctx.beginPath();
+        ctx.arc(-6, -3, 3, 0, Math.PI * 2);
+        ctx.arc(7, -3, 3, 0, Math.PI * 2);
+        ctx.fill();
+        if (customer.vip) {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 13px Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText('VIP', 0, -customer.r - 8);
+        }
+        ctx.restore();
+      });
+
+      thieves.forEach(thief => {
+        ctx.save();
+        ctx.translate(thief.x, thief.y);
+        ctx.fillStyle = thief.color;
+        ctx.shadowColor = thief.color;
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = Math.PI * 2 * i / 6 + performance.now() / 450;
+          const r = i % 2 ? thief.r * 0.65 : thief.r;
+          ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(-thief.r, thief.r + 6, thief.r * 2, 5);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-thief.r, thief.r + 6, thief.r * 2 * clamp(thief.hp / thief.maxHp, 0, 1), 5);
+        ctx.restore();
+      });
+
+      lasers.forEach(laser => {
+        ctx.globalAlpha = clamp(laser.life / 0.12, 0, 1);
+        ctx.strokeStyle = '#65c8ff';
+        ctx.shadowColor = '#65c8ff';
+        ctx.shadowBlur = 16;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(laser.x1, laser.y1);
+        ctx.lineTo(laser.x2, laser.y2);
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+
+      bits.forEach(bit => {
+        ctx.globalAlpha = clamp(bit.life / bit.maxLife, 0, 1);
+        ctx.fillStyle = bit.color;
+        ctx.beginPath();
+        ctx.arc(bit.x, bit.y, bit.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      texts.forEach(text => {
+        ctx.globalAlpha = clamp(text.life, 0, 1);
+        ctx.fillStyle = text.color;
+        ctx.font = '900 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(text.text, text.x, text.y);
+      });
+      ctx.globalAlpha = 1;
+
+      if (burstTimer > 0) {
+        ctx.globalAlpha = 0.25;
+        ctx.strokeStyle = '#ffd45c';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(width / 2, height * 0.56, 260 * (burstTimer / 3.5), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      if (boostTimer > 0 || slowTimer > 0 || combo > 1) {
+        ctx.fillStyle = '#f7fbff';
+        ctx.font = '900 18px Arial';
+        ctx.textAlign = 'right';
+        const effects = [];
+        if (combo > 1) effects.push(`Combo x${combo}`);
+        if (boostTimer > 0) effects.push('2x Sales');
+        if (slowTimer > 0) effects.push('Freeze');
+        ctx.fillText(effects.join('  '), width - 18, 92);
+      }
+
+      ctx.restore();
+    }
+
+    function loop(now) {
+      if (!running) return;
+      const dt = Math.min((now - last) / 1000, 0.033);
+      last = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    canvas.addEventListener('pointerdown', event => {
+      const p = { x: event.clientX, y: event.clientY };
+      const thief = thieves.find(item => Math.hypot(item.x - p.x, item.y - p.y) < item.r + 14);
+      if (thief) {
+        zap(thief);
+        return;
+      }
+      const crate = crates.find(item => Math.hypot(item.x - p.x, item.y - p.y) < item.r + 16);
+      if (crate) {
+        collectCrate(crate);
+        return;
+      }
+      const customer = customers.find(item => Math.hypot(item.x - p.x, item.y - p.y) < item.r + 16);
+      if (customer) {
+        sellTo(customer);
+        return;
+      }
+      if (Math.hypot(width / 2 - p.x, height - 100 - p.y) < 170 && snacks > 0) {
+        coins += Math.floor(2 * hype);
+        snacks -= 1;
+        addText(p.x, p.y, `+$${Math.floor(2 * hype)}`, '#63f7a4');
+        addBits(p.x, p.y, '#63f7a4', 12, 210);
+        if (coins >= goal) nextDay();
+        updateHud();
+      }
+    });
+
+    window.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && gemShop.classList.contains('open')) {
+        closeGemShop();
+      }
+      if (event.code === 'Space') snackBurst();
+      if (event.key === 'Enter' && overlay.style.display !== 'none') {
+        const button = overlay.querySelector('button');
+        if (button) button.click();
+      }
+    });
+
+    shopButtons.forEach(button => {
+      button.addEventListener('click', () => buy(button.dataset.buy));
+    });
+    document.getElementById('closeGems').addEventListener('click', closeGemShop);
+    document.getElementById('start').addEventListener('click', start);
+    window.addEventListener('resize', resize);
+
+    resize();
+    renderGemShop();
+    updateHud();
+    draw();
+  </script>
+</body>
+</html>
