@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head>
+<head> j
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101114">
@@ -281,7 +281,7 @@
     .game-card {
       min-height: 342px;
       display: grid;
-      grid-template-rows: auto auto 1fr auto auto;
+      grid-template-rows: auto auto auto 1fr auto auto;
       gap: 14px;
       padding: 16px;
       position: relative;
@@ -331,6 +331,43 @@
       color: var(--soft);
       font-size: 14px;
       line-height: 1.42;
+    }
+
+    .preview-pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .how-preview {
+      position: relative;
+      display: block;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      background: #070a12;
+    }
+
+    .how-preview img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .how-preview span {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(8, 10, 18, 0.84);
+      color: white;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .tags {
@@ -388,6 +425,7 @@
 
     .play:focus-visible,
     .file-link:focus-visible,
+    .how-preview:focus-visible,
     .recent-item:focus-visible,
     button:focus-visible {
       outline: 3px solid var(--yellow);
@@ -503,7 +541,7 @@
     <section aria-labelledby="libraryTitle">
       <div class="section-head">
         <h2 id="libraryTitle">Launcher</h2>
-        <p>Mobile and keyboard tags are based on each page's controls.</p>
+        <p>Fifteen main games include animated how-to-play guides.</p>
       </div>
       <div class="grid" id="gameGrid"></div>
     </section>
@@ -766,7 +804,7 @@
       },
       {
         id: "minefield-mini", title: "Minefield Mini", file: "minefield_mini.html", type: "Logic Minigame", icon: "×", accent: "linear-gradient(135deg, #ff6470, #ffd166)",
-        blurb: "Minigame: open all twenty safe tiles without uncovering one of five hidden mines.", tags: ["Touch controls", "Mouse", "Logic", "Five mines"]
+        blurb: "Minigame: use number clues and three safe-tile hints to open all twenty safe tiles without hitting a mine.", tags: ["Touch controls", "Mouse", "Logic", "Three hints"]
       },
       {
         id: "tic-tac-67", title: "Tic-Tac 67", file: "tic_tac_67.html", type: "Strategy Minigame", icon: "X", accent: "linear-gradient(135deg, #64d2ff, #ff78a5)",
@@ -821,6 +859,47 @@
       }
     ];
 
+    const howToPlayGuides = {
+      "orbit-breaker": "how-to-play/orbit-breaker.gif",
+      "riftbound-skybreak": "how-to-play/riftbound-skybreak.gif",
+      "code-busters": "how-to-play/code-busters.gif",
+      "sixty-seven-rush": "how-to-play/sixty-seven-rush.gif",
+      "rivals-loadout": "how-to-play/rivals-loadout.gif",
+      "snack-comet": "how-to-play/snack-comet.gif",
+      "stupid-card-battle": "how-to-play/stupid-card-battle.gif",
+      "strongest-duo": "how-to-play/strongest-duo.gif",
+      "bawugana-rat": "how-to-play/bawugana-rat.gif",
+      "aim-3d-trainer": "how-to-play/aim-3d-trainer.gif",
+      "moon-mart-mayhem": "how-to-play/moon-mart-mayhem.gif",
+      "neon-blaster": "how-to-play/neon-blaster.gif",
+      "orbit-post": "how-to-play/orbit-post.gif",
+      "rift-67": "how-to-play/rift-67.gif",
+      "swipe-the-crown": "how-to-play/swipe-the-crown.gif"
+    };
+
+    const mobileHowToPlayGuides = {
+      "orbit-breaker": "how-to-play/mobile/orbit-breaker.gif",
+      "riftbound-skybreak": "how-to-play/mobile/riftbound-skybreak.gif",
+      "code-busters": "how-to-play/mobile/code-busters.gif",
+      "sixty-seven-rush": "how-to-play/mobile/sixty-seven-rush.gif",
+      "rivals-loadout": "how-to-play/mobile/rivals-loadout.gif",
+      "snack-comet": "how-to-play/mobile/snack-comet.gif",
+      "stupid-card-battle": "how-to-play/mobile/stupid-card-battle.gif",
+      "strongest-duo": "how-to-play/mobile/strongest-duo.gif",
+      "bawugana-rat": "how-to-play/mobile/bawugana-rat.gif",
+      "aim-3d-trainer": "how-to-play/mobile/aim-3d-trainer.gif",
+      "moon-mart-mayhem": "how-to-play/mobile/moon-mart-mayhem.gif",
+      "neon-blaster": "how-to-play/mobile/neon-blaster.gif",
+      "orbit-post": "how-to-play/mobile/orbit-post.gif",
+      "rift-67": "how-to-play/mobile/rift-67.gif",
+      "swipe-the-crown": "how-to-play/mobile/swipe-the-crown.gif"
+    };
+
+    games.forEach(game => {
+      game.guide = howToPlayGuides[game.id] || "";
+      game.mobileGuide = mobileHowToPlayGuides[game.id] || "";
+    });
+
     const byId = Object.fromEntries(games.map(game => [game.id, game]));
     const grid = document.getElementById("gameGrid");
     const recentList = document.getElementById("recentList");
@@ -874,6 +953,10 @@
             <div class="type">${game.type}</div>
           </div>
           <h3>${game.title}</h3>
+          ${game.guide ? `<div class="preview-pair">
+            <a class="how-preview" href="${game.guide}" aria-label="Open the ${game.title} desktop how-to-play GIF"><img src="${game.guide}" alt="Desktop how-to-play animation for ${game.title}" loading="lazy"><span>Desktop</span></a>
+            <a class="how-preview" href="${game.mobileGuide}" aria-label="Open the ${game.title} mobile how-to-play GIF"><img src="${game.mobileGuide}" alt="Mobile how-to-play animation for ${game.title}, with a circular finger marker" loading="lazy"><span>Mobile</span></a>
+          </div>` : ""}
           <p>${game.blurb}</p>
           <div class="tags" aria-label="${game.title} tags">${tagHTML(game.tags)}</div>
           <div class="actions">
