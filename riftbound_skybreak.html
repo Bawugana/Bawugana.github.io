@@ -73,5 +73,5 @@ addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space
 $('startBtn').onclick=start;$('again').onclick=start;
 let touchId=null,origin=null;$('stick').addEventListener('pointerdown',e=>{touchId=e.pointerId;origin={x:e.clientX,y:e.clientY};e.target.setPointerCapture(e.pointerId)});$('stick').addEventListener('pointermove',e=>{if(e.pointerId!==touchId)return;let dx=e.clientX-origin.x,dy=e.clientY-origin.y;keys.d=dx>18;keys.a=dx<-18;keys.s=dy>18;keys.w=dy<-18});$('stick').addEventListener('pointerup',()=>{touchId=null;keys.w=keys.a=keys.s=keys.d=false});$('touchDash').addEventListener('pointerdown',dash);$('touchNova').addEventListener('pointerdown',nova);
 </script>
-</body>
+<script src="arcade_keybinds.js?v=4"></script><script src="mobile_joystick.js?v=2"></script></body>
 </html>

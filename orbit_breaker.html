@@ -41,4 +41,4 @@ function loop(now){let dt=Math.min(.033,(now-last)/1000);last=now;if(playing)upd
 $('#launch').onclick=reset;$('#mute').onclick=e=>{e.stopPropagation();muted=!muted;$('#mute').textContent=muted?'×':'◖'};addEventListener('keydown',e=>{if((e.code==='Space'||e.code==='ArrowUp'||e.code==='ArrowDown')&&!e.repeat){e.preventDefault();shift()}if(e.code==='Enter'&&!playing)reset()});addEventListener('pointerdown',e=>{if(playing&&!e.target.closest('button')){e.preventDefault();shift()}},{passive:false});addEventListener('resize',resize);resize();draw();
 })();
 </script>
-</body></html>
+<script src="arcade_keybinds.js?v=4"></script><script src="mobile_joystick.js?v=2"></script><script src="cat_button.js?v=2"></script></body></html>
